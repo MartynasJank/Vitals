@@ -67,8 +67,14 @@
             </x-nav-link>
         </nav>
 
-        <div class="px-4 py-3 border-t border-gray-800">
+        <div class="px-4 py-3 border-t border-gray-800 space-y-2">
             <p class="text-xs text-gray-600 font-mono">162.55.219.28</p>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+                    Sign out
+                </button>
+            </form>
         </div>
     </aside>
 
