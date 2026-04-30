@@ -37,7 +37,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: "app/,bootstrap/,config/,database/migrations/,public/,resources/views/,routes/,vendor/,composer.json,composer.lock,artisan"
+          source: "app/,bootstrap/,config/,database/migrations/,public/,resources/views/,routes/,vendor/,composer.json,composer.lock,artisan,.env.example"
           target: "/var/www/vitals"
 
       - name: Run post-deploy commands
