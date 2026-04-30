@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config('app.name') }}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
@@ -12,7 +13,7 @@
     {{-- Sidebar --}}
     <aside class="w-56 bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0 h-screen sticky top-0">
         <div class="px-5 py-5 border-b border-gray-800">
-            <span class="font-mono text-lg font-bold text-green-400 tracking-tight">vitals</span>
+            <a href="{{ route('dashboard') }}" class="font-mono text-lg font-bold text-green-400 tracking-tight hover:text-green-300 transition-colors">vitals</a>
         </div>
 
         <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
