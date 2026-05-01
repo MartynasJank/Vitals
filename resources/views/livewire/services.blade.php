@@ -1,5 +1,70 @@
 <div>
-    <h1 class="text-2xl font-bold text-gray-100 mb-6">Services</h1>
+    <h1 class="text-xl font-bold text-gray-100 mb-6">Services</h1>
 
-    <p class="text-gray-500">Services monitoring coming soon...</p>
+    @if($restartMessage)
+        <div class="mb-4 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300">
+            {{ $restartMessage }}
+        </div>
+    @endif
+
+    {{-- System Services --}}
+    <div class="space-y-3 mb-8">
+        @foreach($services as $key => $service)
+            <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $service['running'] ? 'bg-green-400' : 'bg-red-500' }}"></span>
+                    <div>
+                        <p class="text-sm font-medium text-gray-100">{{ $service['label'] }}</p>
+                        <p class="text-xs text-gray-500 font-mono">{{ $key }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    @if($service['uptime'])
+                        <div class="text-right">
+                            <p class="text-xs text-gray-500">Uptime</p>
+                            <p class="text-sm text-gray-300">{{ $service['uptime'] }}</p>
+                        </div>
+                    @endif
+
+                    @if($service['memory'])
+                        <div class="text-right">
+                            <p class="text-xs text-gray-500">Memory</p>
+                            <p class="text-sm text-gray-300">{{ $service['memory'] }}</p>
+                        </div>
+                    @endif
+
+                    <div class="text-right min-w-12">
+                        <p class="text-xs text-gray-500">Status</p>
+                        <p class="text-sm font-medium {{ $service['running'] ? 'text-green-400' : 'text-red-400' }}">
+                            {{ $service['running'] ? 'Running' : 'Stopped' }}
+                        </p>
+                    </div>
+
+                    <button wire:click="restart('{{ $key }}')"
+                            wire:confirm="Restart {{ $service['label'] }}?"
+                            class="text-xs text-gray-600 hover:text-amber-400 transition-colors font-mono">
+                        restart
+                    </button>
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    {{-- Cron Jobs --}}
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Cron Jobs</h2>
+
+    @if(empty($cronJobs))
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+            <p class="text-sm text-gray-500">No cron jobs found.</p>
+        </div>
+    @else
+        <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800">
+            @foreach($cronJobs as $job)
+                <div class="px-5 py-3">
+                    <p class="text-sm font-mono text-gray-300">{{ $job }}</p>
+                </div>
+            @endforeach
+        </div>
+    @endif
 </div>
