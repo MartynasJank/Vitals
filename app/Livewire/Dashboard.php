@@ -77,7 +77,7 @@ class Dashboard extends Component
             ->all();
 
         $this->services = collect(app(SystemServiceManager::class)->getAll())
-            ->map(fn ($s) => ['label' => $s['label'], 'running' => $s['running']])
+            ->map(fn ($s) => ['label' => $s['label'], 'running' => $s['running'], 'restarting' => $s['restarting']])
             ->values()
             ->all();
 
@@ -140,9 +140,20 @@ class Dashboard extends Component
             $alerts[] = ['level' => 'warning', 'message' => 'Swap in use: '.number_format($this->swap['used_mb']).' MB'];
         }
 
-        collect($this->siteStatuses)
-            ->where('status', 'down')
-            ->each(fn ($site) => $alerts[] = ['level' => 'error', 'message' => $site['site_name'].' is down']);
+        foreach (collect($this->siteStatuses)->where('status', 'down') as $site) {
+            $recentChecks = SiteCheck::where('url', $site['url'])
+                ->orderBy('checked_at', 'desc')
+                ->limit(2)
+                ->get();
+
+            if ($recentChecks->count() >= 2 && $recentChecks->every(fn ($c) => $c->status === 'down')) {
+                $alerts[] = ['level' => 'error', 'message' => $site['site_name'].' is down'];
+            }
+        }
+
+        foreach (collect($this->services)->where('running', false)->where('restarting', false) as $service) {
+            $alerts[] = ['level' => 'error', 'message' => $service['label'].' is stopped'];
+        }
 
         return $alerts;
     }
