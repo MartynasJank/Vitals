@@ -67,7 +67,7 @@ class SecurityService
                 continue;
             }
 
-            preg_match('/^(\w+\s+\d+\s+[\d:]+).*for (?:invalid user )?(\S+) from ([\d.a-fA-F:]+)/', $line, $m);
+            preg_match('/^(\d{4}-\d{2}-\d{2}T[\d:]+).*for (?:invalid user )?(\S+) from ([\d.a-fA-F:]+)/', $line, $m);
 
             if (isset($m[1], $m[2], $m[3])) {
                 $entries[] = ['time' => $m[1], 'user' => $m[2], 'ip' => $m[3]];
@@ -95,7 +95,7 @@ class SecurityService
                 continue;
             }
 
-            preg_match('/^(\w+\s+\d+\s+[\d:]+).*for (\S+) from ([\d.a-fA-F:]+)/', $line, $m);
+            preg_match('/^(\d{4}-\d{2}-\d{2}T[\d:]+).*for (\S+) from ([\d.a-fA-F:]+)/', $line, $m);
 
             if (isset($m[1], $m[2], $m[3])) {
                 $entries[] = ['time' => $m[1], 'user' => $m[2], 'ip' => $m[3]];
