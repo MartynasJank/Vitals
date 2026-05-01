@@ -1,13 +1,13 @@
 <div @if($polling) wire:poll.10s="loadLines" @endif>
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 class="text-xl font-bold text-gray-100">Logs</h1>
 
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 sm:gap-4 flex-wrap">
             {{-- Search --}}
             <input wire:model.live.debounce.300ms="search"
                    type="text"
                    placeholder="Search..."
-                   class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-gray-500 font-mono w-48" />
+                   class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-gray-500 font-mono w-36 sm:w-48" />
 
             {{-- Download --}}
             <button wire:click="download"
