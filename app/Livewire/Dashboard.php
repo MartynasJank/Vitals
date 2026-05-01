@@ -3,7 +3,9 @@
 namespace App\Livewire;
 
 use App\Models\ResourceSnapshot;
+use App\Models\SiteCheck;
 use App\Services\ServerService;
+use App\Services\SystemServiceManager;
 use Illuminate\View\View;
 use Livewire\Attributes\Poll;
 use Livewire\Component;
@@ -30,6 +32,14 @@ class Dashboard extends Component
 
     public int $coreCount = 1;
 
+    public string $uptime = '';
+
+    /** @var array<int, array{site_name: string, url: string, status: string, response_ms: int|null}> */
+    public array $siteStatuses = [];
+
+    /** @var array<int, array{label: string, running: bool}> */
+    public array $services = [];
+
     /** @var array<int, array{level: string, message: string}> */
     public array $alerts = [];
 
@@ -52,6 +62,24 @@ class Dashboard extends Component
         $this->swap = $server->getSwapStats();
         $this->loadAverage = $server->getLoadAverage();
         $this->coreCount = $server->getCoreCount();
+        $this->uptime = $server->getServerUptime();
+
+        $this->siteStatuses = SiteCheck::whereIn('id', function ($q) {
+            $q->selectRaw('MAX(id)')->from('site_checks')->groupBy('url');
+        })
+            ->get(['site_name', 'url', 'status', 'response_ms'])
+            ->map(fn ($check) => [
+                'site_name' => $check->site_name,
+                'url' => $check->url,
+                'status' => $check->status,
+                'response_ms' => $check->response_ms,
+            ])
+            ->all();
+
+        $this->services = collect(app(SystemServiceManager::class)->getAll())
+            ->map(fn ($s) => ['label' => $s['label'], 'running' => $s['running']])
+            ->values()
+            ->all();
 
         $this->alerts = $this->computeAlerts();
     }
@@ -111,6 +139,10 @@ class Dashboard extends Component
         if ($this->swap['used_mb'] > 512) {
             $alerts[] = ['level' => 'warning', 'message' => 'Swap in use: '.number_format($this->swap['used_mb']).' MB'];
         }
+
+        collect($this->siteStatuses)
+            ->where('status', 'down')
+            ->each(fn ($site) => $alerts[] = ['level' => 'error', 'message' => $site['site_name'].' is down']);
 
         return $alerts;
     }

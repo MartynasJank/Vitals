@@ -21,7 +21,8 @@
         @endif
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {{-- Stat cards --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
         {{-- CPU --}}
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">CPU Usage</p>
@@ -70,6 +71,78 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    {{-- Quick info pills --}}
+    <div class="flex flex-wrap gap-3 mb-6">
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 flex items-center gap-2.5">
+            <p class="text-xs text-gray-500">Uptime</p>
+            <p class="text-sm font-mono text-gray-100">{{ $uptime }}</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 flex items-center gap-2.5">
+            <p class="text-xs text-gray-500">Load</p>
+            <p class="text-sm font-mono {{ $loadAverage['one'] > $coreCount ? 'text-amber-400' : 'text-gray-100' }}">{{ $loadAverage['one'] }}</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 flex items-center gap-2.5">
+            <p class="text-xs text-gray-500">Swap</p>
+            <p class="text-sm font-mono {{ $swap['used_mb'] > 0 ? 'text-amber-400' : 'text-gray-100' }}">
+                {{ number_format($swap['used_mb'] / 1024, 1) }} / {{ number_format($swap['total_mb'] / 1024, 1) }} GB
+            </p>
+        </div>
+    </div>
+
+    {{-- Sites + Services --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        {{-- Sites --}}
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+            <div class="flex items-center justify-between mb-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Sites</p>
+                <a href="{{ route('sites') }}" class="text-xs text-gray-600 hover:text-gray-400 transition-colors font-mono">view all →</a>
+            </div>
+            @if(empty($siteStatuses))
+                <p class="text-sm text-gray-600 font-mono">No data yet — run <span class="text-gray-500">vitals:check-sites</span></p>
+            @else
+                <div class="space-y-3">
+                    @foreach($siteStatuses as $site)
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $site['status'] === 'up' ? 'bg-green-400' : 'bg-red-500' }}"></span>
+                                <p class="text-sm font-mono text-gray-300 truncate">{{ $site['site_name'] }}</p>
+                            </div>
+                            <div class="flex items-center gap-3 flex-shrink-0 ml-3">
+                                <p class="text-xs text-gray-500 font-mono">{{ $site['response_ms'] ? $site['response_ms'].'ms' : '—' }}</p>
+                                <span class="text-xs font-medium {{ $site['status'] === 'up' ? 'text-green-400' : 'text-red-400' }}">
+                                    {{ strtoupper($site['status']) }}
+                                </span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        {{-- Services --}}
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+            <div class="flex items-center justify-between mb-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Services</p>
+                <a href="{{ route('services') }}" class="text-xs text-gray-600 hover:text-gray-400 transition-colors font-mono">view all →</a>
+            </div>
+            <div class="space-y-3">
+                @foreach($services as $service)
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $service['running'] ? 'bg-green-400' : 'bg-red-500' }}"></span>
+                            <p class="text-sm text-gray-300">{{ $service['label'] }}</p>
+                        </div>
+                        <span class="text-xs font-mono {{ $service['running'] ? 'text-green-400' : 'text-red-400' }}">
+                            {{ $service['running'] ? 'running' : 'stopped' }}
+                        </span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
     </div>
 </div>
 
