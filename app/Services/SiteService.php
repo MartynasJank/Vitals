@@ -78,6 +78,39 @@ class SiteService
         });
     }
 
+    public function getNginxConfig(string $domain): ?string
+    {
+        if (! preg_match('/^[a-zA-Z0-9.\-]+$/', $domain)) {
+            return null;
+        }
+
+        $dir = '/etc/nginx/sites-enabled';
+
+        if (! is_dir($dir)) {
+            return null;
+        }
+
+        foreach (scandir($dir) as $file) {
+            if ($file === '.' || $file === '..') {
+                continue;
+            }
+
+            $path = "$dir/$file";
+            $realPath = is_link($path) ? readlink($path) : $path;
+            $content = file_get_contents($realPath);
+
+            if (! $content) {
+                continue;
+            }
+
+            if (preg_match('/server_name[^;]*\b'.preg_quote($domain, '/').'(\s|;)/', $content)) {
+                return $content;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * @return array{url: string, status: string, status_code: int|null, response_ms: int|null}
      */
