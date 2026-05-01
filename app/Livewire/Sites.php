@@ -23,7 +23,11 @@ class Sites extends Component
         $service = app(SiteService::class);
 
         $this->sites = collect($service->discoverSites())
-            ->map(fn ($site) => array_merge($site, $service->checkSite($site['url'])))
+            ->map(fn ($site) => array_merge(
+                $site,
+                $service->checkSite($site['url']),
+                ['ssl_days' => $service->getSslExpiry(parse_url($site['url'], PHP_URL_HOST))]
+            ))
             ->all();
     }
 

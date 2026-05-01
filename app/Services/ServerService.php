@@ -109,6 +109,99 @@ class ServerService
     }
 
     /**
+     * @return array{interface: string, rx_rate_kbps: float, tx_rate_kbps: float, rx_total_gb: float, tx_total_gb: float}
+     */
+    public function getNetworkStats(): array
+    {
+        $interface = trim(shell_exec("ip route show default 2>/dev/null | awk 'NR==1 {print $5}'") ?? '');
+
+        if (! preg_match('/^[a-z0-9]+$/', $interface)) {
+            $interface = 'eth0';
+        }
+
+        $empty = ['interface' => $interface, 'rx_rate_kbps' => 0.0, 'tx_rate_kbps' => 0.0, 'rx_total_gb' => 0.0, 'tx_total_gb' => 0.0];
+        $output = shell_exec('cat /proc/net/dev');
+
+        if (! $output) {
+            return $empty;
+        }
+
+        foreach (explode("\n", $output) as $line) {
+            if (! preg_match('/^\s*'.preg_quote($interface, '/').':\s*(.+)/', $line, $m)) {
+                continue;
+            }
+
+            $parts = preg_split('/\s+/', trim($m[1]));
+            $rxBytes = (int) ($parts[0] ?? 0);
+            $txBytes = (int) ($parts[8] ?? 0);
+
+            $cacheKey = "network_stats_{$interface}";
+            $prev = cache()->get($cacheKey);
+            $now = time();
+            $rxRateKbps = 0.0;
+            $txRateKbps = 0.0;
+
+            if ($prev && isset($prev['time'], $prev['rx'], $prev['tx'])) {
+                $elapsed = $now - $prev['time'];
+
+                if ($elapsed > 0) {
+                    $rxRateKbps = max(0.0, round(($rxBytes - $prev['rx']) / $elapsed / 1024, 1));
+                    $txRateKbps = max(0.0, round(($txBytes - $prev['tx']) / $elapsed / 1024, 1));
+                }
+            }
+
+            cache()->put($cacheKey, ['time' => $now, 'rx' => $rxBytes, 'tx' => $txBytes], 60);
+
+            return [
+                'interface' => $interface,
+                'rx_rate_kbps' => $rxRateKbps,
+                'tx_rate_kbps' => $txRateKbps,
+                'rx_total_gb' => round($rxBytes / 1_073_741_824, 2),
+                'tx_total_gb' => round($txBytes / 1_073_741_824, 2),
+            ];
+        }
+
+        return $empty;
+    }
+
+    /**
+     * @return array<int, array{device: string, mount: string, total_gb: int, used_gb: int, avail_gb: int, percent: int}>
+     */
+    public function getAllDiskPartitions(): array
+    {
+        $output = shell_exec('df -BG --output=source,size,used,avail,pcent,target 2>/dev/null | tail -n +2');
+
+        if (! $output) {
+            return [];
+        }
+
+        $partitions = [];
+
+        foreach (explode("\n", trim($output)) as $line) {
+            if (empty($line)) {
+                continue;
+            }
+
+            $parts = preg_split('/\s+/', trim($line));
+
+            if (count($parts) < 6 || ! str_starts_with($parts[0], '/dev/')) {
+                continue;
+            }
+
+            $partitions[] = [
+                'device' => $parts[0],
+                'total_gb' => (int) rtrim($parts[1], 'G'),
+                'used_gb' => (int) rtrim($parts[2], 'G'),
+                'avail_gb' => (int) rtrim($parts[3], 'G'),
+                'percent' => (int) rtrim($parts[4], '%'),
+                'mount' => $parts[5],
+            ];
+        }
+
+        return $partitions;
+    }
+
+    /**
      * @return array<int, array{pid: int, user: string, cpu: float, memory: float, command: string}>
      */
     public function getTopProcesses(): array

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class SiteService
@@ -47,6 +48,34 @@ class SiteService
         }
 
         return $sites;
+    }
+
+    public function getSslExpiry(string $domain): ?int
+    {
+        if (! preg_match('/^[a-zA-Z0-9.\-]+$/', $domain)) {
+            return null;
+        }
+
+        return Cache::remember("ssl_expiry_{$domain}", 3600, function () use ($domain) {
+            $output = shell_exec(
+                'echo | openssl s_client -connect '.escapeshellarg($domain.':443').
+                ' -servername '.escapeshellarg($domain).' 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null'
+            );
+
+            if (! $output) {
+                return null;
+            }
+
+            preg_match('/notAfter=(.+)/', $output, $matches);
+
+            if (! isset($matches[1])) {
+                return null;
+            }
+
+            $expiry = strtotime(trim($matches[1]));
+
+            return $expiry ? (int) ceil(($expiry - time()) / 86400) : null;
+        });
     }
 
     /**

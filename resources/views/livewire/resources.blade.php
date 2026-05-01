@@ -86,15 +86,63 @@
     </div>
 
     {{-- Disk --}}
-    <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-6">
+    <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-4">
         <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Disk</p>
-        <div class="flex items-center justify-between mb-3">
-            <p class="text-3xl font-bold text-gray-100">{{ number_format($disk['used_gb'], 0) }}<span class="text-lg text-gray-500 ml-1">GB</span></p>
-            <p class="text-sm text-gray-500">{{ number_format($disk['percent'], 1) }}% of {{ number_format($disk['total_gb'], 0) }} GB</p>
-        </div>
-        <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
-            <div class="h-full rounded-full transition-all duration-500 {{ $disk['percent'] > 80 ? 'bg-red-500' : ($disk['percent'] > 60 ? 'bg-amber-500' : 'bg-green-500') }}"
-                 style="width: {{ min($disk['percent'], 100) }}%"></div>
+        @if(!empty($diskPartitions))
+            <div class="space-y-3">
+                @foreach($diskPartitions as $partition)
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <p class="text-sm font-mono text-gray-100">{{ $partition['mount'] }}</p>
+                                <p class="text-xs text-gray-600 font-mono hidden sm:block truncate">{{ $partition['device'] }}</p>
+                            </div>
+                            <p class="text-xs text-gray-500 flex-shrink-0 ml-3">{{ $partition['used_gb'] }} / {{ $partition['total_gb'] }} GB &middot; {{ $partition['percent'] }}%</p>
+                        </div>
+                        <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500 {{ $partition['percent'] > 80 ? 'bg-red-500' : ($partition['percent'] > 60 ? 'bg-amber-500' : 'bg-green-500') }}"
+                                 style="width: {{ min($partition['percent'], 100) }}%"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="flex items-center justify-between mb-3">
+                <p class="text-3xl font-bold text-gray-100">{{ number_format($disk['used_gb'], 0) }}<span class="text-lg text-gray-500 ml-1">GB</span></p>
+                <p class="text-sm text-gray-500">{{ number_format($disk['percent'], 1) }}% of {{ number_format($disk['total_gb'], 0) }} GB</p>
+            </div>
+            <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-500 {{ $disk['percent'] > 80 ? 'bg-red-500' : ($disk['percent'] > 60 ? 'bg-amber-500' : 'bg-green-500') }}"
+                     style="width: {{ min($disk['percent'], 100) }}%"></div>
+            </div>
+        @endif
+    </div>
+
+    {{-- Network --}}
+    <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Network</p>
+                <p class="text-xs text-gray-600 font-mono">{{ $network['interface'] }}</p>
+            </div>
+            <div class="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:gap-8 sm:text-right">
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">↓ In</p>
+                    <p class="text-sm font-mono text-gray-100">{{ $network['rx_rate_kbps'] }} KB/s</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">↑ Out</p>
+                    <p class="text-sm font-mono text-gray-100">{{ $network['tx_rate_kbps'] }} KB/s</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">Total In</p>
+                    <p class="text-sm font-mono text-gray-100">{{ $network['rx_total_gb'] }} GB</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">Total Out</p>
+                    <p class="text-sm font-mono text-gray-100">{{ $network['tx_total_gb'] }} GB</p>
+                </div>
+            </div>
         </div>
     </div>
 
