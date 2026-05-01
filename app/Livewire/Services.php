@@ -31,15 +31,7 @@ class Services extends Component
 
     public function loadCronJobs(): void
     {
-        $crontabFile = '/var/spool/cron/crontabs/root';
-
-        if (! file_exists($crontabFile)) {
-            $this->cronJobs = [];
-
-            return;
-        }
-
-        $output = file_get_contents($crontabFile);
+        $output = shell_exec('sudo crontab -l 2>/dev/null');
 
         $this->cronJobs = $output
             ? collect(explode("\n", trim($output)))
