@@ -12,6 +12,9 @@
                     style="width: {{ min($cpuPercent, 100) }}%">
                 </div>
             </div>
+            <div class="mt-4 h-12">
+                <canvas id="cpuChart"></canvas>
+            </div>
         </div>
 
         {{-- RAM --}}
@@ -27,6 +30,9 @@
                     {{ $ramPercent > 80 ? 'bg-red-500' : ($ramPercent > 50 ? 'bg-amber-500' : 'bg-green-500') }}"
                     style="width: {{ min($ramPercent, 100) }}%">
                 </div>
+            </div>
+            <div class="mt-3 h-12">
+                <canvas id="ramChart"></canvas>
             </div>
         </div>
 
@@ -46,3 +52,50 @@
         </div>
     </div>
 </div>
+
+@script
+<script>
+    const chartDefaults = {
+        type: 'line',
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { display: false, min: 0, max: 100 },
+            },
+            elements: {
+                point: { radius: 0 },
+                line: { tension: 0.4, borderWidth: 1.5 },
+            },
+        },
+    };
+
+    const cpuChart = new Chart(document.getElementById('cpuChart'), {
+        ...chartDefaults,
+        data: {
+            labels: @json($cpuHistory->keys()),
+            datasets: [{
+                data: @json($cpuHistory),
+                borderColor: '#4ade80',
+                backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                fill: true,
+            }],
+        },
+    });
+
+    const ramChart = new Chart(document.getElementById('ramChart'), {
+        ...chartDefaults,
+        data: {
+            labels: @json($ramHistory->keys()),
+            datasets: [{
+                data: @json($ramHistory),
+                borderColor: '#60a5fa',
+                backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                fill: true,
+            }],
+        },
+    });
+</script>
+@endscript

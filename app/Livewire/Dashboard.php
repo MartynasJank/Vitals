@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\ResourceSnapshot;
 use App\Services\ServerService;
 use Illuminate\View\View;
 use Livewire\Attributes\Poll;
@@ -45,6 +46,19 @@ class Dashboard extends Component
 
     public function render(): View
     {
-        return view('livewire.dashboard');
+        $snapshots = ResourceSnapshot::orderBy('recorded_at')
+            ->latest('recorded_at')
+            ->limit(60)
+            ->get()
+            ->reverse()
+            ->values();
+
+        return view('livewire.dashboard', [
+            'cpuHistory' => $snapshots->pluck('cpu_percent'),
+            'ramHistory' => $snapshots->map(fn ($s) => $s->ram_total_mb > 0
+                ? round($s->ram_used_mb / $s->ram_total_mb * 100, 1)
+                : 0
+            ),
+        ]);
     }
 }
