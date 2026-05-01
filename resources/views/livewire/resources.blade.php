@@ -41,7 +41,7 @@
             <div class="h-full rounded-full transition-all duration-500 {{ $cpuPercent > 80 ? 'bg-red-500' : ($cpuPercent > 50 ? 'bg-amber-500' : 'bg-green-500') }}"
                  style="width: {{ min($cpuPercent, 100) }}%"></div>
         </div>
-        <div class="h-24">
+        <div class="h-24" wire:ignore>
             <canvas id="cpuChart"></canvas>
         </div>
     </div>
@@ -80,7 +80,7 @@
             <div class="h-full rounded-full transition-all duration-500 {{ $ramPercent > 80 ? 'bg-red-500' : ($ramPercent > 50 ? 'bg-amber-500' : 'bg-blue-400') }}"
                  style="width: {{ min($ramPercent, 100) }}%"></div>
         </div>
-        <div class="h-24">
+        <div class="h-24" wire:ignore>
             <canvas id="ramChart"></canvas>
         </div>
     </div>
@@ -120,56 +120,67 @@
     </div>
 </div>
 
+{{-- Chart data updated by Livewire on each render --}}
+<div id="resourceChartData"
+     data-cpu="@json($cpuHistory)"
+     data-ram="@json($ramHistory)"
+     data-labels="@json($labels)">
+</div>
+
 @script
 <script>
-    const makeChart = (id, data, labels, color) => new Chart(document.getElementById(id), {
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: {
+                display: true,
+                ticks: { color: '#4b5563', font: { size: 10, family: 'monospace' }, maxTicksLimit: 8, maxRotation: 0 },
+                grid: { color: 'rgba(75, 85, 99, 0.2)' },
+            },
+            y: {
+                display: true,
+                min: 0,
+                max: 100,
+                ticks: { color: '#4b5563', font: { size: 10 }, callback: v => v + '%', maxTicksLimit: 5 },
+                grid: { color: 'rgba(75, 85, 99, 0.2)' },
+            },
+        },
+        elements: { point: { radius: 0 }, line: { tension: 0.4, borderWidth: 1.5 } },
+    };
+
+    const readData = () => {
+        const el = document.getElementById('resourceChartData');
+        return {
+            cpu: JSON.parse(el.dataset.cpu),
+            ram: JSON.parse(el.dataset.ram),
+            labels: JSON.parse(el.dataset.labels),
+        };
+    };
+
+    const initial = readData();
+
+    const cpuChart = new Chart(document.getElementById('cpuChart'), {
         type: 'line',
-        data: {
-            labels,
-            datasets: [{
-                data,
-                borderColor: color,
-                backgroundColor: color.replace(')', ', 0.1)').replace('rgb', 'rgba'),
-                fill: true,
-            }],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: {
-                    display: true,
-                    ticks: {
-                        color: '#4b5563',
-                        font: { size: 10, family: 'monospace' },
-                        maxTicksLimit: 8,
-                        maxRotation: 0,
-                    },
-                    grid: { color: 'rgba(75, 85, 99, 0.2)' },
-                },
-                y: {
-                    display: true,
-                    min: 0,
-                    max: 100,
-                    ticks: {
-                        color: '#4b5563',
-                        font: { size: 10 },
-                        callback: v => v + '%',
-                        maxTicksLimit: 5,
-                    },
-                    grid: { color: 'rgba(75, 85, 99, 0.2)' },
-                },
-            },
-            elements: {
-                point: { radius: 0 },
-                line: { tension: 0.4, borderWidth: 1.5 },
-            },
-        },
+        data: { labels: initial.labels, datasets: [{ data: initial.cpu, borderColor: 'rgb(74, 222, 128)', backgroundColor: 'rgba(74, 222, 128, 0.1)', fill: true }] },
+        options: chartOptions,
     });
 
-    const labels = @json($labels);
-    makeChart('cpuChart', @json($cpuHistory), labels, 'rgb(74, 222, 128)');
-    makeChart('ramChart', @json($ramHistory), labels, 'rgb(96, 165, 250)');
+    const ramChart = new Chart(document.getElementById('ramChart'), {
+        type: 'line',
+        data: { labels: initial.labels, datasets: [{ data: initial.ram, borderColor: 'rgb(96, 165, 250)', backgroundColor: 'rgba(96, 165, 250, 0.1)', fill: true }] },
+        options: chartOptions,
+    });
+
+    document.addEventListener('livewire:updated', () => {
+        const d = readData();
+        cpuChart.data.labels = d.labels;
+        cpuChart.data.datasets[0].data = d.cpu;
+        cpuChart.update('none');
+        ramChart.data.labels = d.labels;
+        ramChart.data.datasets[0].data = d.ram;
+        ramChart.update('none');
+    });
 </script>
 @endscript
