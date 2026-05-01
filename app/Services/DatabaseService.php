@@ -16,7 +16,7 @@ class DatabaseService
                 table_schema AS name,
                 ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size_mb,
                 COUNT(*) AS tables,
-                SUM(table_rows) AS rows
+                SUM(table_rows) AS row_count
             FROM information_schema.TABLES
             WHERE table_schema NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')
             GROUP BY table_schema
@@ -27,7 +27,7 @@ class DatabaseService
             'name' => $row->name,
             'size_mb' => (float) $row->size_mb,
             'tables' => (int) $row->tables,
-            'rows' => (int) $row->rows,
+            'rows' => (int) $row->row_count,
         ], $rows);
     }
 
