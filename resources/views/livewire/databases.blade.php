@@ -3,7 +3,7 @@
 
     {{-- Server stats --}}
     @if(!empty($serverStats))
-        <div class="grid grid-cols-4 gap-3 mb-8">
+        <div class="grid grid-cols-4 gap-3 mb-4">
             <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
                 <p class="text-xs text-gray-500 mb-1">Version</p>
                 <p class="text-sm font-mono text-gray-100">{{ $serverStats['version'] }}</p>
@@ -14,7 +14,25 @@
             </div>
             <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
                 <p class="text-xs text-gray-500 mb-1">Connections</p>
-                <p class="text-sm font-mono text-gray-100">{{ $serverStats['connections'] }}</p>
+                <p class="text-sm font-mono text-gray-100">{{ $serverStats['connections'] }} / {{ $serverStats['max_connections'] }}</p>
+            </div>
+            <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+                <p class="text-xs text-gray-500 mb-1">Threads Running</p>
+                <p class="text-sm font-mono text-gray-100">{{ $serverStats['threads_running'] }}</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-4 gap-3 mb-8">
+            <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+                <p class="text-xs text-gray-500 mb-1">Buffer Hit Rate</p>
+                <p class="text-sm font-mono {{ (float) $serverStats['buffer_hit_rate'] >= 99 ? 'text-green-400' : ((float) $serverStats['buffer_hit_rate'] >= 95 ? 'text-amber-400' : 'text-red-400') }}">
+                    {{ $serverStats['buffer_hit_rate'] }}
+                </p>
+            </div>
+            <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+                <p class="text-xs text-gray-500 mb-1">Slow Queries</p>
+                <p class="text-sm font-mono {{ $serverStats['slow_queries'] > 0 ? 'text-amber-400' : 'text-gray-100' }}">
+                    {{ number_format($serverStats['slow_queries']) }}
+                </p>
             </div>
             <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
                 <p class="text-xs text-gray-500 mb-1">Total Queries</p>
@@ -31,23 +49,49 @@
             <p class="text-sm text-gray-500">No databases found.</p>
         </div>
     @else
-        <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800">
+        <div class="space-y-2">
             @foreach($databases as $db)
-                <div class="px-5 py-4 flex items-center justify-between">
-                    <p class="text-sm font-mono text-gray-100">{{ $db['name'] }}</p>
-                    <div class="flex items-center gap-10">
-                        <div class="text-right">
-                            <p class="text-xs text-gray-500 mb-0.5">Size</p>
-                            <p class="text-sm text-gray-300">{{ $db['size_mb'] }} MB</p>
+                <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden" x-data="{ open: false }">
+                    {{-- Database row --}}
+                    <button @click="open = !open" class="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-3 h-3 text-gray-500 transition-transform" :class="{ 'rotate-90': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                            <p class="text-sm font-mono text-gray-100">{{ $db['name'] }}</p>
                         </div>
-                        <div class="text-right">
-                            <p class="text-xs text-gray-500 mb-0.5">Tables</p>
-                            <p class="text-sm text-gray-300">{{ $db['tables'] }}</p>
+                        <div class="flex items-center gap-10">
+                            <div class="text-right">
+                                <p class="text-xs text-gray-500 mb-0.5">Size</p>
+                                <p class="text-sm text-gray-300">{{ $db['size_mb'] }} MB</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-gray-500 mb-0.5">Tables</p>
+                                <p class="text-sm text-gray-300">{{ $db['table_count'] }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-gray-500 mb-0.5">Rows</p>
+                                <p class="text-sm text-gray-300">{{ number_format($db['rows']) }}</p>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <p class="text-xs text-gray-500 mb-0.5">Rows</p>
-                            <p class="text-sm text-gray-300">{{ number_format($db['rows']) }}</p>
+                    </button>
+
+                    {{-- Tables dropdown --}}
+                    <div x-show="open" x-cloak class="border-t border-gray-800">
+                        <div class="px-5 py-2 grid grid-cols-4 gap-4">
+                            <p class="text-xs text-gray-600 uppercase tracking-wider">Table</p>
+                            <p class="text-xs text-gray-600 uppercase tracking-wider text-right">Engine</p>
+                            <p class="text-xs text-gray-600 uppercase tracking-wider text-right">Rows</p>
+                            <p class="text-xs text-gray-600 uppercase tracking-wider text-right">Size</p>
                         </div>
+                        @foreach($db['tables'] as $table)
+                            <div class="px-5 py-2.5 grid grid-cols-4 gap-4 border-t border-gray-800/60">
+                                <p class="text-xs font-mono text-gray-300">{{ $table['name'] }}</p>
+                                <p class="text-xs font-mono text-gray-500 text-right">{{ $table['engine'] }}</p>
+                                <p class="text-xs font-mono text-gray-400 text-right">{{ number_format($table['rows']) }}</p>
+                                <p class="text-xs font-mono text-gray-400 text-right">{{ $table['size_mb'] }} MB</p>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
             @endforeach
