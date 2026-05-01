@@ -26,6 +26,12 @@ class Resources extends Component
     /** @var array{used_gb: float, total_gb: float, percent: float} */
     public array $disk = ['used_gb' => 0.0, 'total_gb' => 0.0, 'percent' => 0.0];
 
+    /** @var array{interface: string, rx_rate_kbps: float, tx_rate_kbps: float, rx_total_gb: float, tx_total_gb: float} */
+    public array $network = ['interface' => '', 'rx_rate_kbps' => 0.0, 'tx_rate_kbps' => 0.0, 'rx_total_gb' => 0.0, 'tx_total_gb' => 0.0];
+
+    /** @var array<int, array{device: string, mount: string, total_gb: int, used_gb: int, avail_gb: int, percent: int}> */
+    public array $diskPartitions = [];
+
     /** @var array<int, array{pid: int, user: string, cpu: float, memory: float, command: string}> */
     public array $processes = [];
 
@@ -47,6 +53,8 @@ class Resources extends Component
         $this->ram = $server->getRamStats();
         $this->swap = $server->getSwapStats();
         $this->disk = $server->getDiskStats();
+        $this->network = $server->getNetworkStats();
+        $this->diskPartitions = $server->getAllDiskPartitions();
         $this->processes = $server->getTopProcesses();
     }
 

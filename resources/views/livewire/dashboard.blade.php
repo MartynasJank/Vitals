@@ -1,6 +1,26 @@
 <div>
     <h1 class="text-xl font-bold text-gray-100 mb-6">Dashboard</h1>
 
+    {{-- Alerts --}}
+    <div class="mb-6">
+        @if(empty($alerts))
+            <div class="flex items-center gap-3 px-4 py-3 rounded-lg border border-green-900/30 bg-green-950/20">
+                <span class="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></span>
+                <p class="text-sm text-green-400">All systems normal</p>
+            </div>
+        @else
+            <div class="space-y-2">
+                @foreach($alerts as $alert)
+                    <div class="flex items-center gap-3 px-4 py-3 rounded-lg border
+                        {{ $alert['level'] === 'error' ? 'bg-red-950/40 border-red-900/50' : 'bg-amber-950/40 border-amber-900/50' }}">
+                        <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $alert['level'] === 'error' ? 'bg-red-500' : 'bg-amber-500' }}"></span>
+                        <p class="text-sm {{ $alert['level'] === 'error' ? 'text-red-300' : 'text-amber-300' }}">{{ $alert['message'] }}</p>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {{-- CPU --}}
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">

@@ -17,7 +17,19 @@
                     <div class="flex items-center gap-3 min-w-0">
                         <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $site['status'] === 'up' ? 'bg-green-400' : 'bg-red-500' }}"></span>
                         <div class="min-w-0">
-                            <p class="text-sm font-medium text-gray-100">{{ $site['name'] }}</p>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <p class="text-sm font-medium text-gray-100">{{ $site['name'] }}</p>
+                                @if(isset($site['ssl_days']))
+                                    @if($site['ssl_days'] === null)
+                                        <span class="text-xs font-mono text-gray-600">no SSL</span>
+                                    @else
+                                        <span class="text-xs font-mono px-1.5 py-0.5 rounded
+                                            {{ $site['ssl_days'] < 14 ? 'text-red-400 bg-red-950/50' : ($site['ssl_days'] < 30 ? 'text-amber-400 bg-amber-950/50' : 'text-green-400 bg-green-950/50') }}">
+                                            SSL {{ $site['ssl_days'] }}d
+                                        </span>
+                                    @endif
+                                @endif
+                            </div>
                             <p class="text-xs text-gray-500 font-mono truncate">{{ $site['url'] }}</p>
                         </div>
                     </div>
