@@ -132,11 +132,11 @@
                 @foreach($services as $service)
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2.5">
-                            <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $service['running'] ? 'bg-green-400' : 'bg-red-500' }}"></span>
+                            <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $service['restarting'] ? 'bg-amber-400' : ($service['running'] ? 'bg-green-400' : 'bg-red-500') }}"></span>
                             <p class="text-sm text-gray-300">{{ $service['label'] }}</p>
                         </div>
-                        <span class="text-xs font-mono {{ $service['running'] ? 'text-green-400' : 'text-red-400' }}">
-                            {{ $service['running'] ? 'running' : 'stopped' }}
+                        <span class="text-xs font-mono {{ $service['restarting'] ? 'text-amber-400' : ($service['running'] ? 'text-green-400' : 'text-red-400') }}">
+                            {{ $service['restarting'] ? 'restarting…' : ($service['running'] ? 'running' : 'stopped') }}
                         </span>
                     </div>
                 @endforeach

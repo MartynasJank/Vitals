@@ -13,14 +13,22 @@ class SystemServiceManager
     ];
 
     /**
-     * @return array<string, array{label: string, running: bool, uptime: string|null, memory: string|null}>
+     * @return array<string, array{label: string, running: bool, restarting: bool, uptime: string|null, memory: string|null}>
      */
     public function getAll(): array
     {
         $result = [];
 
         foreach ($this->services as $service => $label) {
-            $result[$service] = array_merge(['label' => $label], $this->getStatus($service));
+            $status = $this->getStatus($service);
+            $restarting = (bool) cache()->get("restarting_{$service}", false);
+
+            if ($restarting && $status['running']) {
+                cache()->forget("restarting_{$service}");
+                $restarting = false;
+            }
+
+            $result[$service] = array_merge(['label' => $label, 'restarting' => $restarting], $status);
         }
 
         return $result;
@@ -62,6 +70,8 @@ class SystemServiceManager
         if (! array_key_exists($service, $this->services)) {
             return false;
         }
+
+        cache()->put("restarting_{$service}", true, 90);
 
         $output = shell_exec('sudo systemctl restart '.escapeshellarg($service).' 2>&1');
 

@@ -12,7 +12,7 @@
         @foreach($services as $key => $service)
             <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-4 min-w-0">
-                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 {{ $service['running'] ? 'bg-green-400' : 'bg-red-500' }}"></span>
+                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 {{ $service['restarting'] ? 'bg-amber-400' : ($service['running'] ? 'bg-green-400' : 'bg-red-500') }}"></span>
                     <div class="min-w-0">
                         <p class="text-sm font-medium text-gray-100">{{ $service['label'] }}</p>
                         <p class="text-xs text-gray-500 font-mono mt-0.5 truncate">{{ $key }}</p>
@@ -36,8 +36,8 @@
 
                     <div class="text-right">
                         <p class="text-xs text-gray-500 mb-0.5">Status</p>
-                        <p class="text-sm font-medium {{ $service['running'] ? 'text-green-400' : 'text-red-400' }}">
-                            {{ $service['running'] ? 'Running' : 'Stopped' }}
+                        <p class="text-sm font-medium {{ $service['restarting'] ? 'text-amber-400' : ($service['running'] ? 'text-green-400' : 'text-red-400') }}">
+                            {{ $service['restarting'] ? 'Restarting…' : ($service['running'] ? 'Running' : 'Stopped') }}
                         </p>
                     </div>
 
