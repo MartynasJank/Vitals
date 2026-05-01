@@ -63,7 +63,7 @@ class SystemServiceManager
             return false;
         }
 
-        $output = shell_exec('systemctl restart '.escapeshellarg($service).' 2>&1');
+        $output = shell_exec('sudo systemctl restart '.escapeshellarg($service).' 2>&1');
 
         return $output === null || trim($output) === '';
     }
