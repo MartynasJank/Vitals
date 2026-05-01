@@ -3,7 +3,7 @@
 
     {{-- Server stats --}}
     @if(!empty($serverStats))
-        <div class="grid grid-cols-4 gap-3 mb-4">
+        <div class="grid grid-cols-2 gap-3 mb-4 md:grid-cols-4">
             <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
                 <p class="text-xs text-gray-500 mb-1">Version</p>
                 <p class="text-sm font-mono text-gray-100">{{ $serverStats['version'] }}</p>
@@ -21,7 +21,7 @@
                 <p class="text-sm font-mono text-gray-100">{{ $serverStats['threads_running'] }}</p>
             </div>
         </div>
-        <div class="grid grid-cols-4 gap-3 mb-8">
+        <div class="grid grid-cols-2 gap-3 mb-8 md:grid-cols-4">
             <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
                 <p class="text-xs text-gray-500 mb-1">Buffer Hit Rate</p>
                 <p class="text-sm font-mono {{ (float) $serverStats['buffer_hit_rate'] >= 99 ? 'text-green-400' : ((float) $serverStats['buffer_hit_rate'] >= 95 ? 'text-amber-400' : 'text-red-400') }}">
@@ -60,16 +60,16 @@
                             </svg>
                             <p class="text-sm font-mono text-gray-100">{{ $db['name'] }}</p>
                         </div>
-                        <div class="flex items-center gap-10">
+                        <div class="flex items-center gap-4 sm:gap-10 flex-shrink-0">
                             <div class="text-right">
                                 <p class="text-xs text-gray-500 mb-0.5">Size</p>
                                 <p class="text-sm text-gray-300">{{ $db['size_mb'] }} MB</p>
                             </div>
-                            <div class="text-right">
+                            <div class="text-right hidden sm:block">
                                 <p class="text-xs text-gray-500 mb-0.5">Tables</p>
                                 <p class="text-sm text-gray-300">{{ $db['table_count'] }}</p>
                             </div>
-                            <div class="text-right">
+                            <div class="text-right hidden sm:block">
                                 <p class="text-xs text-gray-500 mb-0.5">Rows</p>
                                 <p class="text-sm text-gray-300">{{ number_format($db['rows']) }}</p>
                             </div>
@@ -77,15 +77,15 @@
                     </button>
 
                     {{-- Tables dropdown --}}
-                    <div x-show="open" x-cloak class="border-t border-gray-800">
-                        <div class="px-5 py-2 grid grid-cols-4 gap-4">
+                    <div x-show="open" x-cloak class="border-t border-gray-800 overflow-x-auto">
+                        <div class="px-5 py-2 grid grid-cols-4 gap-4 min-w-[400px]">
                             <p class="text-xs text-gray-600 uppercase tracking-wider">Table</p>
                             <p class="text-xs text-gray-600 uppercase tracking-wider text-right">Engine</p>
                             <p class="text-xs text-gray-600 uppercase tracking-wider text-right">Rows</p>
                             <p class="text-xs text-gray-600 uppercase tracking-wider text-right">Size</p>
                         </div>
                         @foreach($db['tables'] as $table)
-                            <div class="px-5 py-2.5 grid grid-cols-4 gap-4 border-t border-gray-800/60">
+                            <div class="px-5 py-2.5 grid grid-cols-4 gap-4 border-t border-gray-800/60 min-w-[400px]">
                                 <p class="text-xs font-mono text-gray-300">{{ $table['name'] }}</p>
                                 <p class="text-xs font-mono text-gray-500 text-right">{{ $table['engine'] }}</p>
                                 <p class="text-xs font-mono text-gray-400 text-right">{{ number_format($table['rows']) }}</p>

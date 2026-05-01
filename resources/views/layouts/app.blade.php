@@ -9,10 +9,31 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     @livewireStyles
 </head>
-<body class="h-full bg-gray-950 text-gray-100 flex">
+<body class="h-full bg-gray-950 text-gray-100 flex" x-data="{ sidebarOpen: false }">
+
+    {{-- Mobile header --}}
+    <header class="fixed top-0 inset-x-0 z-40 h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4 md:hidden">
+        <button @click="sidebarOpen = !sidebarOpen" class="text-gray-400 hover:text-gray-200 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+        <a href="{{ route('dashboard') }}" class="font-mono text-base font-bold text-green-400 tracking-tight">vitals</a>
+        <div class="w-5"></div>
+    </header>
+
+    {{-- Backdrop --}}
+    <div x-show="sidebarOpen"
+         @click="sidebarOpen = false"
+         class="fixed inset-0 z-30 bg-black/50 md:hidden"
+         style="display: none;"></div>
 
     {{-- Sidebar --}}
-    <aside class="w-56 bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0 h-screen sticky top-0">
+    <aside class="fixed top-14 bottom-0 left-0 z-30 w-56 flex-shrink-0
+                  md:sticky md:top-0 md:h-screen
+                  -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out
+                  bg-gray-900 border-r border-gray-800 flex flex-col"
+           :class="{ 'translate-x-0': sidebarOpen }">
         <div class="px-5 py-5 border-b border-gray-800">
             <a href="{{ route('dashboard') }}" class="font-mono text-lg font-bold text-green-400 tracking-tight hover:text-green-300 transition-colors">vitals</a>
         </div>
@@ -80,8 +101,8 @@
     </aside>
 
     {{-- Main content --}}
-    <main class="flex-1 overflow-y-auto">
-        <div class="p-6">
+    <main class="flex-1 overflow-y-auto pt-14 md:pt-0">
+        <div class="p-4 md:p-6">
             {{ $slot }}
         </div>
     </main>

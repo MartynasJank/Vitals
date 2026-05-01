@@ -13,12 +13,12 @@
 
     {{-- CPU --}}
     <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-4">
-        <div class="flex items-start justify-between mb-4">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-4">
             <div>
                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">CPU</p>
                 <p class="text-3xl font-bold text-gray-100">{{ number_format($cpuPercent, 1) }}<span class="text-lg text-gray-500 ml-1">%</span></p>
             </div>
-            <div class="flex gap-8 text-right">
+            <div class="grid grid-cols-4 gap-3 sm:flex sm:gap-8 sm:text-right">
                 <div>
                     <p class="text-xs text-gray-500 mb-1">Load 1m</p>
                     <p class="text-sm font-mono {{ $loadAverage['one'] > $coreCount ? 'text-red-400' : 'text-gray-100' }}">{{ $loadAverage['one'] }}</p>
@@ -48,13 +48,13 @@
 
     {{-- RAM --}}
     <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-4">
-        <div class="flex items-start justify-between mb-4">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-4">
             <div>
                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">RAM</p>
                 <p class="text-3xl font-bold text-gray-100">{{ number_format($ram['used_mb'] / 1024, 1) }}<span class="text-lg text-gray-500 ml-1">GB</span></p>
                 <p class="text-sm text-gray-500 mt-0.5">of {{ number_format($ram['total_mb'] / 1024, 1) }} GB</p>
             </div>
-            <div class="flex gap-8 text-right">
+            <div class="grid grid-cols-4 gap-3 sm:flex sm:gap-8 sm:text-right">
                 <div>
                     <p class="text-xs text-gray-500 mb-1">Free</p>
                     <p class="text-sm font-mono text-gray-100">{{ number_format($ram['free_mb'] / 1024, 1) }} GB</p>
@@ -100,7 +100,8 @@
 
     {{-- Top Processes --}}
     <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Top Processes</h2>
-    <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+    <div class="overflow-x-auto">
+    <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden min-w-[560px]">
         <div class="px-5 py-2.5 grid grid-cols-12 gap-4 border-b border-gray-800">
             <p class="text-xs text-gray-600 uppercase tracking-wider col-span-1">PID</p>
             <p class="text-xs text-gray-600 uppercase tracking-wider col-span-2">User</p>
@@ -118,13 +119,14 @@
             </div>
         @endforeach
     </div>
+    </div>
 </div>
 
 {{-- Chart data updated by Livewire on each render --}}
 <div id="resourceChartData"
-     data-cpu="@json($cpuHistory)"
-     data-ram="@json($ramHistory)"
-     data-labels="@json($labels)">
+     data-cpu="{{ json_encode($cpuHistory) }}"
+     data-ram="{{ json_encode($ramHistory) }}"
+     data-labels="{{ json_encode($labels) }}">
 </div>
 
 @script

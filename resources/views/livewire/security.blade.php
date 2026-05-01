@@ -42,10 +42,13 @@
     @else
         <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800 mb-8">
             @foreach($failedLogins as $entry)
-                <div class="px-5 py-3 flex items-center gap-8">
-                    <p class="text-xs font-mono text-gray-500 w-36 flex-shrink-0">{{ $entry['time'] }}</p>
-                    <p class="text-sm font-mono text-gray-300 w-28 flex-shrink-0">{{ $entry['user'] }}</p>
-                    <p class="text-sm font-mono text-red-400">{{ $entry['ip'] }}</p>
+                <div class="px-4 sm:px-5 py-3">
+                    <div class="flex items-center gap-3">
+                        <p class="text-sm font-mono text-red-400">{{ $entry['ip'] }}</p>
+                        <span class="text-gray-600">·</span>
+                        <p class="text-sm font-mono text-gray-300">{{ $entry['user'] }}</p>
+                    </div>
+                    <p class="text-xs font-mono text-gray-500 mt-0.5">{{ $entry['time'] }}</p>
                 </div>
             @endforeach
         </div>
@@ -78,10 +81,13 @@
     @else
         <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800">
             @foreach($successfulLogins as $entry)
-                <div class="px-5 py-3 flex items-center gap-8">
-                    <p class="text-xs font-mono text-gray-500 w-36 flex-shrink-0">{{ $entry['time'] }}</p>
-                    <p class="text-sm font-mono text-gray-300 w-28 flex-shrink-0">{{ $entry['user'] }}</p>
-                    <p class="text-sm font-mono text-green-400">{{ $entry['ip'] }}</p>
+                <div class="px-4 sm:px-5 py-3">
+                    <div class="flex items-center gap-3">
+                        <p class="text-sm font-mono text-green-400">{{ $entry['ip'] }}</p>
+                        <span class="text-gray-600">·</span>
+                        <p class="text-sm font-mono text-gray-300">{{ $entry['user'] }}</p>
+                    </div>
+                    <p class="text-xs font-mono text-gray-500 mt-0.5">{{ $entry['time'] }}</p>
                 </div>
             @endforeach
         </div>

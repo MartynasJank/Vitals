@@ -1,7 +1,7 @@
 <div>
     <h1 class="text-xl font-bold text-gray-100 mb-6">Dashboard</h1>
 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {{-- CPU --}}
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">CPU Usage</p>

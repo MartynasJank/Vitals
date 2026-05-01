@@ -13,27 +13,27 @@
     @else
         <div class="space-y-3">
             @foreach($sites as $site)
-                <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
+                <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 sm:px-5 py-4 flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 min-w-0">
                         <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $site['status'] === 'up' ? 'bg-green-400' : 'bg-red-500' }}"></span>
-                        <div>
+                        <div class="min-w-0">
                             <p class="text-sm font-medium text-gray-100">{{ $site['name'] }}</p>
-                            <p class="text-xs text-gray-500 font-mono">{{ $site['url'] }}</p>
+                            <p class="text-xs text-gray-500 font-mono truncate">{{ $site['url'] }}</p>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-4 sm:gap-6 flex-shrink-0">
                         <div class="text-right">
                             <p class="text-xs text-gray-500">Status</p>
                             <p class="text-sm font-medium {{ $site['status'] === 'up' ? 'text-green-400' : 'text-red-400' }}">
                                 {{ strtoupper($site['status']) }}
                                 @if($site['status_code'])
-                                    <span class="text-gray-500 font-normal ml-1">({{ $site['status_code'] }})</span>
+                                    <span class="text-gray-500 font-normal ml-1 hidden sm:inline">({{ $site['status_code'] }})</span>
                                 @endif
                             </p>
                         </div>
 
-                        <div class="text-right">
+                        <div class="text-right hidden sm:block">
                             <p class="text-xs text-gray-500">Response</p>
                             <p class="text-sm text-gray-300">
                                 {{ $site['response_ms'] ? $site['response_ms'].'ms' : '—' }}
