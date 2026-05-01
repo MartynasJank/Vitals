@@ -45,6 +45,9 @@ class Services extends Component
     {
         $success = app(SystemServiceManager::class)->restart($service);
         $this->restartMessage = $success ? "Restarted {$service}." : "Failed to restart {$service}.";
+        // Give the service time to come back up before polling status (important for nginx,
+        // which would otherwise drop the connection mid-response).
+        sleep(3);
         $this->loadServices();
     }
 
