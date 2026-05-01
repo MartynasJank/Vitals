@@ -10,51 +10,15 @@ class LogService
     public function getSources(): array
     {
         $sources = [
+            'nginx_error' => ['label' => 'Nginx Error', 'path' => '/var/log/nginx/error.log'],
+            'nginx_access' => ['label' => 'Nginx Access', 'path' => '/var/log/nginx/access.log'],
             'syslog' => ['label' => 'Syslog', 'path' => '/var/log/syslog'],
         ];
 
-        $dir = '/etc/nginx/sites-enabled';
-
-        if (! is_dir($dir)) {
-            return $sources;
-        }
-
-        foreach (scandir($dir) as $file) {
-            if ($file === '.' || $file === '..') {
-                continue;
-            }
-
-            $path = "$dir/$file";
-            $content = file_get_contents(is_link($path) ? readlink($path) : $path);
-
-            if (! $content) {
-                continue;
-            }
-
-            preg_match('/server_name\s+([^;]+);/', $content, $nameMatch);
-            $domain = isset($nameMatch[1]) ? trim(preg_split('/\s+/', trim($nameMatch[1]))[0]) : $file;
-
-            if ($domain === '_') {
-                $domain = $file;
-            }
-
-            preg_match_all('/access_log\s+(\S+)/', $content, $accessMatches);
-            foreach ($accessMatches[1] as $logPath) {
-                if ($logPath === 'off') {
-                    continue;
-                }
-                $key = 'access_'.md5($logPath);
-                $sources[$key] = ['label' => $domain.' access', 'path' => $logPath];
-            }
-
-            preg_match_all('/error_log\s+(\S+)/', $content, $errorMatches);
-            foreach ($errorMatches[1] as $logPath) {
-                if ($logPath === 'off') {
-                    continue;
-                }
-                $key = 'error_'.md5($logPath);
-                $sources[$key] = ['label' => $domain.' error', 'path' => $logPath];
-            }
+        foreach (glob('/var/www/*/storage/logs/laravel.log') ?: [] as $logPath) {
+            $appName = basename(dirname($logPath, 3));
+            $key = 'laravel_'.$appName;
+            $sources[$key] = ['label' => $appName.' (Laravel)', 'path' => $logPath];
         }
 
         return $sources;
@@ -97,6 +61,11 @@ class LogService
         }
 
         return array_reverse($lines);
+    }
+
+    public function getPath(string $source): ?string
+    {
+        return $this->getSources()[$source]['path'] ?? null;
     }
 
     private function detectLevel(string $line): string
