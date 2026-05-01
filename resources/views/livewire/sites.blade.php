@@ -16,8 +16,8 @@
                 <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
 
                     {{-- Site row (clickable to expand) --}}
-                    <button wire:click="selectSite('{{ $site['url'] }}')"
-                            class="w-full px-4 sm:px-5 py-4 flex items-center justify-between gap-4 hover:bg-gray-800/30 transition-colors text-left">
+                    <div wire:click="selectSite('{{ $site['url'] }}')"
+                         class="w-full px-4 sm:px-5 py-4 flex items-center justify-between gap-4 hover:bg-gray-800/30 transition-colors cursor-pointer">
                         <div class="flex items-center gap-3 min-w-0">
                             <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $site['status'] === 'up' ? 'bg-green-400' : 'bg-red-500' }}"></span>
                             <div class="min-w-0">
@@ -66,7 +66,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                             </svg>
                         </div>
-                    </button>
+                    </div>
 
                     {{-- Detail panel --}}
                     @if($selectedSite === $site['url'])
