@@ -28,7 +28,7 @@
                             <p class="text-sm font-medium {{ $site['status'] === 'up' ? 'text-green-400' : 'text-red-400' }}">
                                 {{ strtoupper($site['status']) }}
                                 @if($site['status_code'])
-                                    <span class="text-gray-500 font-normal">({{ $site['status_code'] }})</span>
+                                    <span class="text-gray-500 font-normal ml-1">({{ $site['status_code'] }})</span>
                                 @endif
                             </p>
                         </div>
