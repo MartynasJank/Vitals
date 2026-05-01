@@ -1,8 +1,10 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use App\Models\ResourceSnapshot;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+Schedule::command('vitals:snapshot')->everyFiveMinutes();
+
+Schedule::call(fn () => ResourceSnapshot::where('recorded_at', '<', now()->subDays(7))->delete())
+    ->daily()
+    ->name('cleanup:snapshots');
