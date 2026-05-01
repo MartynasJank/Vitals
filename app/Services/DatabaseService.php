@@ -41,7 +41,7 @@ class DatabaseService
             SELECT
                 table_name AS name,
                 engine,
-                table_rows AS rows,
+                table_rows AS row_count,
                 ROUND((data_length + index_length) / 1024 / 1024, 3) AS size_mb
             FROM information_schema.TABLES
             WHERE table_schema = ?
@@ -51,7 +51,7 @@ class DatabaseService
         return array_map(fn ($row) => [
             'name' => $row->name,
             'engine' => $row->engine ?? 'unknown',
-            'rows' => (int) $row->rows,
+            'rows' => (int) $row->row_count,
             'size_mb' => (float) $row->size_mb,
         ], $rows);
     }
