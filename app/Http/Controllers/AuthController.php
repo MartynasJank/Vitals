@@ -9,12 +9,12 @@ class AuthController extends Controller
 {
     public function redirect(): RedirectResponse
     {
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')->stateless()->redirect();
     }
 
     public function callback(): RedirectResponse
     {
-        $user = Socialite::driver('google')->user();
+        $user = Socialite::driver('google')->stateless()->user();
 
         if ($user->getEmail() !== config('services.google.allowed_email')) {
             abort(403, 'Unauthorized');
