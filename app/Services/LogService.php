@@ -4,32 +4,60 @@ namespace App\Services;
 
 class LogService
 {
-    /** @var array<string, array{label: string, path: string}> */
-    private array $sources = [
-        'nginx_error' => [
-            'label' => 'Nginx Error',
-            'path' => '/var/log/nginx/error.log',
-        ],
-        'nginx_access' => [
-            'label' => 'Nginx Access',
-            'path' => '/var/log/nginx/access.log',
-        ],
-        'laravel' => [
-            'label' => 'Laravel',
-            'path' => '/var/www/moviepicker/storage/logs/laravel.log',
-        ],
-        'syslog' => [
-            'label' => 'Syslog',
-            'path' => '/var/log/syslog',
-        ],
-    ];
-
     /**
      * @return array<string, array{label: string, path: string}>
      */
     public function getSources(): array
     {
-        return $this->sources;
+        $sources = [
+            'syslog' => ['label' => 'Syslog', 'path' => '/var/log/syslog'],
+        ];
+
+        $dir = '/etc/nginx/sites-enabled';
+
+        if (! is_dir($dir)) {
+            return $sources;
+        }
+
+        foreach (scandir($dir) as $file) {
+            if ($file === '.' || $file === '..') {
+                continue;
+            }
+
+            $path = "$dir/$file";
+            $content = file_get_contents(is_link($path) ? readlink($path) : $path);
+
+            if (! $content) {
+                continue;
+            }
+
+            preg_match('/server_name\s+([^;]+);/', $content, $nameMatch);
+            $domain = isset($nameMatch[1]) ? trim(preg_split('/\s+/', trim($nameMatch[1]))[0]) : $file;
+
+            if ($domain === '_') {
+                $domain = $file;
+            }
+
+            preg_match_all('/access_log\s+(\S+)/', $content, $accessMatches);
+            foreach ($accessMatches[1] as $logPath) {
+                if ($logPath === 'off') {
+                    continue;
+                }
+                $key = 'access_'.md5($logPath);
+                $sources[$key] = ['label' => $domain.' access', 'path' => $logPath];
+            }
+
+            preg_match_all('/error_log\s+(\S+)/', $content, $errorMatches);
+            foreach ($errorMatches[1] as $logPath) {
+                if ($logPath === 'off') {
+                    continue;
+                }
+                $key = 'error_'.md5($logPath);
+                $sources[$key] = ['label' => $domain.' error', 'path' => $logPath];
+            }
+        }
+
+        return $sources;
     }
 
     /**
@@ -37,15 +65,16 @@ class LogService
      */
     public function getLines(string $source, ?string $search = null): array
     {
-        if (! array_key_exists($source, $this->sources)) {
+        $sources = $this->getSources();
+
+        if (! array_key_exists($source, $sources)) {
             return [];
         }
 
-        $path = escapeshellarg($this->sources[$source]['path']);
+        $path = escapeshellarg($sources[$source]['path']);
 
         if ($search && $search !== '') {
-            $grep = 'grep -i '.escapeshellarg($search).' '.$path.' 2>/dev/null | tail -100';
-            $output = shell_exec($grep);
+            $output = shell_exec('grep -i '.escapeshellarg($search).' '.$path.' 2>/dev/null | tail -100');
         } else {
             $output = shell_exec('tail -100 '.$path.' 2>/dev/null');
         }
