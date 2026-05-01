@@ -8,34 +8,34 @@
     @endif
 
     {{-- System Services --}}
-    <div class="space-y-3 mb-8">
+    <div class="space-y-3 mb-10">
         @foreach($services as $key => $service)
             <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $service['running'] ? 'bg-green-400' : 'bg-red-500' }}"></span>
+                <div class="flex items-center gap-4">
+                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 {{ $service['running'] ? 'bg-green-400' : 'bg-red-500' }}"></span>
                     <div>
                         <p class="text-sm font-medium text-gray-100">{{ $service['label'] }}</p>
-                        <p class="text-xs text-gray-500 font-mono">{{ $key }}</p>
+                        <p class="text-xs text-gray-500 font-mono mt-0.5">{{ $key }}</p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-6">
+                <div class="flex items-center gap-10">
                     @if($service['uptime'])
                         <div class="text-right">
-                            <p class="text-xs text-gray-500">Uptime</p>
+                            <p class="text-xs text-gray-500 mb-0.5">Uptime</p>
                             <p class="text-sm text-gray-300">{{ $service['uptime'] }}</p>
                         </div>
                     @endif
 
                     @if($service['memory'])
                         <div class="text-right">
-                            <p class="text-xs text-gray-500">Memory</p>
+                            <p class="text-xs text-gray-500 mb-0.5">Memory</p>
                             <p class="text-sm text-gray-300">{{ $service['memory'] }}</p>
                         </div>
                     @endif
 
-                    <div class="text-right min-w-12">
-                        <p class="text-xs text-gray-500">Status</p>
+                    <div class="text-right w-20">
+                        <p class="text-xs text-gray-500 mb-0.5">Status</p>
                         <p class="text-sm font-medium {{ $service['running'] ? 'text-green-400' : 'text-red-400' }}">
                             {{ $service['running'] ? 'Running' : 'Stopped' }}
                         </p>
@@ -43,7 +43,7 @@
 
                     <button wire:click="restart('{{ $key }}')"
                             wire:confirm="Restart {{ $service['label'] }}?"
-                            class="text-xs text-gray-600 hover:text-amber-400 transition-colors font-mono">
+                            class="w-16 text-xs text-gray-600 hover:text-amber-400 transition-colors font-mono text-right">
                         restart
                     </button>
                 </div>
@@ -61,7 +61,7 @@
     @else
         <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800">
             @foreach($cronJobs as $job)
-                <div class="px-5 py-3">
+                <div class="px-5 py-3.5">
                     <p class="text-sm font-mono text-gray-300">{{ $job }}</p>
                 </div>
             @endforeach
