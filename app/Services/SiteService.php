@@ -34,7 +34,7 @@ class SiteService
 
             foreach ($matches[1] as $serverNames) {
                 foreach (preg_split('/\s+/', trim($serverNames)) as $domain) {
-                    if ($domain === '_' || str_starts_with($domain, '.')) {
+                    if ($domain === '_' || str_starts_with($domain, '.') || str_starts_with($domain, 'www.')) {
                         continue;
                     }
 
