@@ -223,7 +223,7 @@
         options: chartOptions,
     });
 
-    document.addEventListener('livewire:updated', () => {
+    new MutationObserver(() => {
         const d = readData();
         cpuChart.data.labels = d.labels;
         cpuChart.data.datasets[0].data = d.cpu;
@@ -231,6 +231,6 @@
         ramChart.data.labels = d.labels;
         ramChart.data.datasets[0].data = d.ram;
         ramChart.update('none');
-    });
+    }).observe(document.getElementById('resourceChartData'), { attributes: true });
 </script>
 @endscript
