@@ -162,8 +162,11 @@
 
     initSiteChart();
 
-    document.addEventListener('livewire:updated', () => {
-        initSiteChart();
+    new MutationObserver(initSiteChart).observe($el, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['data-history'],
     });
 </script>
 @endscript
