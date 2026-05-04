@@ -74,13 +74,15 @@ class Resources extends Component
             ->reverse()
             ->values();
 
+        $labelFormat = $this->range === '7d' ? 'd M H:i' : 'H:i';
+
         return view('livewire.resources', [
             'cpuHistory' => $snapshots->pluck('cpu_percent'),
             'ramHistory' => $snapshots->map(fn ($s) => $s->ram_total_mb > 0
                 ? round($s->ram_used_mb / $s->ram_total_mb * 100, 1)
                 : 0
             ),
-            'labels' => $snapshots->map(fn ($s) => $s->recorded_at->format('H:i')),
+            'labels' => $snapshots->map(fn ($s) => $s->recorded_at->format($labelFormat)),
         ]);
     }
 }
