@@ -168,13 +168,13 @@
         @endforeach
     </div>
     </div>
-</div>
 
-{{-- Chart data updated by Livewire on each render --}}
-<div id="resourceChartData"
-     data-cpu="{{ json_encode($cpuHistory) }}"
-     data-ram="{{ json_encode($ramHistory) }}"
-     data-labels="{{ json_encode($labels) }}">
+    {{-- Chart data updated by Livewire on each render --}}
+    <div id="resourceChartData"
+         data-cpu="{{ json_encode($cpuHistory) }}"
+         data-ram="{{ json_encode($ramHistory) }}"
+         data-labels="{{ json_encode($labels) }}">
+    </div>
 </div>
 
 @script
