@@ -54,6 +54,10 @@ class LogService
                 continue;
             }
 
+            if (preg_match('/^\s*#\d+\s/', $line)) {
+                continue;
+            }
+
             $lines[] = [
                 'raw' => $line,
                 'level' => $this->detectLevel($line),
