@@ -90,7 +90,7 @@ try {
             $geo['org'] ?? null,
             (int) ($geo['proxy'] ?? false),
             (int) ($geo['proxy'] ?? false),
-            (int) ($geo['hosting'] ?? false),
+            0,
         ]);
         $ipId = (int) $pdo->lastInsertId();
     }
