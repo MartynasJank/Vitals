@@ -62,16 +62,8 @@
                             <span class="text-xs text-gray-600 font-mono">{{ $entry['isp'] }}</span>
                         @endif
 
-                        @if(isset($entry['is_vpn']) && $entry['is_vpn'])
-                            <span class="text-xs px-1.5 py-0.5 rounded bg-orange-900/30 text-orange-400 font-mono">VPN</span>
-                        @endif
-
-                        @if(isset($entry['is_tor']) && $entry['is_tor'])
-                            <span class="text-xs px-1.5 py-0.5 rounded bg-purple-900/30 text-purple-400 font-mono">TOR</span>
-                        @endif
-
                         @if(isset($entry['is_proxy']) && $entry['is_proxy'])
-                            <span class="text-xs px-1.5 py-0.5 rounded bg-yellow-900/30 text-yellow-400 font-mono">PROXY</span>
+                            <span class="text-xs px-1.5 py-0.5 rounded bg-yellow-900/30 text-yellow-400 font-mono">ANON</span>
                         @endif
 
                         @if(isset($entry['total_hits']) && $entry['total_hits'] > 3)

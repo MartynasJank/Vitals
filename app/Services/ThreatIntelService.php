@@ -35,7 +35,7 @@ class ThreatIntelService
             'org' => $geo['org'] ?? null,
             'is_proxy' => (bool) ($geo['proxy'] ?? false),
             'is_vpn' => (bool) ($geo['proxy'] ?? false),
-            'is_tor' => (bool) ($geo['hosting'] ?? false),
+            'is_tor' => false,
             'total_hits' => 1,
             'first_seen' => now(),
             'last_seen' => now(),
