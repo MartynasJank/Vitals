@@ -34,6 +34,9 @@ class ThreatIntel extends Component
     /** @var array<int, int> */
     public array $attackHeatmap = [];
 
+    /** @var array<int, array{lat: float, lon: float, count: int}> */
+    public array $attackOrigins = [];
+
     public function mount(): void
     {
         $this->loadData();
@@ -53,6 +56,7 @@ class ThreatIntel extends Component
             $this->repeatOffenderRate = $service->getRepeatOffenderRate();
             $this->crossSourceIps = $service->getCrossSourceIps();
             $this->attackHeatmap = $service->getAttackHeatmap($this->timeRange);
+            $this->attackOrigins = $service->getAttackOrigins();
         } catch (\Exception) {
             // Degrade gracefully if the threat DB is not yet configured
         }
