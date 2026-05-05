@@ -20,6 +20,12 @@ class ThreatIntel extends Component
     /** @var array<int, array{isp: string, count: int}> */
     public array $topIsps = [];
 
+    /** @var array<int, array{org: string, count: int}> */
+    public array $topOrgs = [];
+
+    /** @var array<int, array{referer: string, count: int}> */
+    public array $topReferers = [];
+
     /** @var array<int, array{username: string, count: int}> */
     public array $topUsernames = [];
 
@@ -51,6 +57,8 @@ class ThreatIntel extends Component
             $this->attackVolume = $service->getAttackVolumeOverTime($this->timeRange);
             $this->topCountries = $service->getTopSourceCountries();
             $this->topIsps = $service->getTopIsps();
+            $this->topOrgs = $service->getTopOrgs();
+            $this->topReferers = $service->getTopReferers();
             $this->topUsernames = $service->getTopSshUsernames();
             $this->topPaths = $service->getTopNginxPaths();
             $this->repeatOffenderRate = $service->getRepeatOffenderRate();
