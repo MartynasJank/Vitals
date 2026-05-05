@@ -89,6 +89,12 @@
                 {{ number_format($swap['used_mb'] / 1024, 1) }} / {{ number_format($swap['total_mb'] / 1024, 1) }} GB
             </p>
         </div>
+        <a href="{{ route('threat-intel') }}" class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 flex items-center gap-2.5 hover:border-gray-700 transition-colors">
+            <p class="text-xs text-gray-500">Attacks 24h</p>
+            <p class="text-sm font-mono {{ $attacksLast24h > 500 ? 'text-red-400' : ($attacksLast24h > 100 ? 'text-amber-400' : 'text-green-400') }}">
+                {{ number_format($attacksLast24h) }}
+            </p>
+        </a>
     </div>
 
     {{-- Sites + Services --}}
