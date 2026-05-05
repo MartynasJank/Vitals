@@ -86,7 +86,7 @@
             @if(empty($topCountries))
                 <p class="text-sm text-gray-600 font-mono">No data yet</p>
             @else
-                <div class="h-48" wire:ignore>
+                <div class="h-72" wire:ignore>
                     <canvas id="countriesChart"></canvas>
                 </div>
             @endif
@@ -97,7 +97,7 @@
             @if(empty($topIsps))
                 <p class="text-sm text-gray-600 font-mono">No data yet</p>
             @else
-                <div class="h-48" wire:ignore>
+                <div class="h-72" wire:ignore>
                     <canvas id="ispsChart"></canvas>
                 </div>
             @endif
@@ -108,7 +108,7 @@
             @if(empty($topOrgs))
                 <p class="text-sm text-gray-600 font-mono">No data yet</p>
             @else
-                <div class="h-48" wire:ignore>
+                <div class="h-72" wire:ignore>
                     <canvas id="orgsChart"></canvas>
                 </div>
             @endif
