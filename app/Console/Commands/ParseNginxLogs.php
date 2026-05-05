@@ -73,6 +73,7 @@ class ParseNginxLogs extends Command
                             'method' => $hit['method'],
                             'status_code' => $hit['status_code'],
                             'user_agent' => $hit['user_agent'],
+                            'referer' => $hit['referer'],
                             'scan_type' => $hit['scan_type'],
                             'timestamp' => $hit['timestamp'],
                         ]);
@@ -104,13 +105,13 @@ class ParseNginxLogs extends Command
      */
     private function parseLine(string $line): ?array
     {
-        $pattern = '/^([\d.a-fA-F:]+) - \S+ \[([^\]]+)\] "(\S+) (\S+) [^"]*" (\d{3}) \d+ "[^"]*" "([^"]*)"/';
+        $pattern = '/^([\d.a-fA-F:]+) - \S+ \[([^\]]+)\] "(\S+) (\S+) [^"]*" (\d{3}) \d+ "([^"]*)" "([^"]*)"/';
 
         if (! preg_match($pattern, $line, $m)) {
             return null;
         }
 
-        [, $ip, $timeStr, $method, $path, $status, $userAgent] = $m;
+        [, $ip, $timeStr, $method, $path, $status, $referer, $userAgent] = $m;
 
         $statusCode = (int) $status;
 
@@ -142,6 +143,7 @@ class ParseNginxLogs extends Command
             'path' => substr($path, 0, 2048),
             'status_code' => $statusCode,
             'user_agent' => substr($userAgent, 0, 512),
+            'referer' => $referer !== '-' ? substr($referer, 0, 512) : null,
             'scan_type' => $scanType,
             'timestamp' => $timestamp,
         ];
