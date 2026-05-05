@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Services\SecurityService;
+use App\Services\ThreatIntelService;
 use Illuminate\View\View;
 use Livewire\Attributes\Poll;
 use Livewire\Component;
@@ -12,7 +13,7 @@ class Security extends Component
     /** @var array<int, array{ip: string, jail: string}> */
     public array $bannedIps = [];
 
-    /** @var array<int, array{time: string, user: string, ip: string}> */
+    /** @var array<int, array{time: string, user: string, ip: string, country?: string, country_code?: string, isp?: string, asn?: string, is_proxy?: bool, is_vpn?: bool, is_tor?: bool, total_hits?: int}> */
     public array $failedLogins = [];
 
     /** @var array<int, array{time: string, user: string, ip: string}> */
@@ -34,9 +35,14 @@ class Security extends Component
         $service = app(SecurityService::class);
 
         $this->bannedIps = $service->getBannedIps();
-        $this->failedLogins = $service->getFailedLogins();
         $this->successfulLogins = $service->getSuccessfulLogins();
         $this->firewallRules = $service->getFirewallRules();
+
+        try {
+            $this->failedLogins = app(ThreatIntelService::class)->getEnrichedFailedLogins();
+        } catch (\Exception) {
+            $this->failedLogins = $service->getFailedLogins();
+        }
     }
 
     public function unban(string $ip, string $jail): void
