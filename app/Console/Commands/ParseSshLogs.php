@@ -82,7 +82,7 @@ class ParseSshLogs extends Command
         }
 
         preg_match(
-            '/^(\S+)\s+.*Failed password for (?:invalid user )?(\S+) from ([\d.a-fA-F:]+)/',
+            '/^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+.*Failed password for (?:invalid user )?(\S+) from ([\d.a-fA-F:]+)/',
             $line,
             $m
         );
@@ -91,11 +91,14 @@ class ParseSshLogs extends Command
             return null;
         }
 
-        try {
-            $timestamp = date('Y-m-d H:i:s', strtotime($m[1]));
-        } catch (\Exception) {
-            $timestamp = now()->toDateTimeString();
+        $ts = strtotime(date('Y').' '.$m[1]);
+
+        // If the parsed date is in the future the log entry is from last year (e.g. Dec log parsed in Jan)
+        if ($ts > time() + 86400) {
+            $ts = strtotime((date('Y') - 1).' '.$m[1]);
         }
+
+        $timestamp = $ts ? date('Y-m-d H:i:s', $ts) : now()->toDateTimeString();
 
         return [
             'ip' => $m[3],
