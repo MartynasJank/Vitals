@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema->create('nginx_hits', function (Blueprint $table) {
+        Schema::create('nginx_hits', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ip_id')->constrained('threat_ips')->cascadeOnDelete();
             $table->string('path', 2048)->nullable();
@@ -16,16 +16,13 @@ return new class extends Migration
             $table->unsignedSmallInteger('status_code')->nullable();
             $table->string('user_agent', 512)->nullable();
             $table->enum('scan_type', ['env_probe', 'wp_admin', 'git_exposure', 'phpmyadmin', 'log4shell', 'spring_boot', 'other'])->default('other');
-            $table->timestamp('timestamp')->useCurrent();
-
-            $table->index('ip_id');
-            $table->index('timestamp');
+            $table->timestamp('timestamp')->useCurrent()->index();
             $table->index('scan_type');
         });
     }
 
     public function down(): void
     {
-        Schema->dropIfExists('nginx_hits');
+        Schema::dropIfExists('nginx_hits');
     }
 };
