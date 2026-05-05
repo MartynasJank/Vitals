@@ -196,8 +196,8 @@
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-            x: { ticks: { color: '#4b5563', font: { size: 10, family: 'monospace' }, maxTicksLimit: 12, maxRotation: 0 }, grid: { color: 'rgba(75,85,99,0.15)' } },
-            y: { ticks: { color: '#4b5563', font: { size: 10 }, maxTicksLimit: 5 }, grid: { color: 'rgba(75,85,99,0.15)' } },
+            x: { ticks: { color: '#9ca3af', font: { size: 12, family: 'monospace' }, maxTicksLimit: 12, maxRotation: 0 }, grid: { color: 'rgba(75,85,99,0.15)' } },
+            y: { ticks: { color: '#9ca3af', font: { size: 12 }, maxTicksLimit: 5 }, grid: { color: 'rgba(75,85,99,0.15)' } },
         },
     };
 
@@ -206,8 +206,8 @@
         indexAxis: horizontal ? 'y' : 'x',
         plugins: { legend: { display: false } },
         scales: {
-            x: { ticks: { color: '#4b5563', font: { size: 10 } }, grid: { color: 'rgba(75,85,99,0.15)' } },
-            y: { ticks: { color: '#4b5563', font: { size: 9, family: 'monospace' }, maxTicksLimit: 10 }, grid: { color: 'rgba(75,85,99,0.15)' } },
+            x: { ticks: { color: '#9ca3af', font: { size: 12 } }, grid: { color: 'rgba(75,85,99,0.15)' } },
+            y: { ticks: { color: '#9ca3af', font: { size: 12, family: 'monospace' }, maxTicksLimit: 10 }, grid: { color: 'rgba(75,85,99,0.15)' } },
         },
     });
 
