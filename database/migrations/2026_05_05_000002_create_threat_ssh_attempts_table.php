@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::connection('mysql_threat')->create('ssh_attempts', function (Blueprint $table) {
+        Schema->create('ssh_attempts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ip_id')->constrained('threat_ips')->cascadeOnDelete();
             $table->string('username', 255)->nullable();
@@ -21,6 +21,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::connection('mysql_threat')->dropIfExists('ssh_attempts');
+        Schema->dropIfExists('ssh_attempts');
     }
 };

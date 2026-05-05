@@ -107,12 +107,12 @@ class ThreatIntelService
             default => [now()->subHours(24), '%Y-%m-%d %H:00', 'Y-m-d H:00'],
         };
 
-        $ssh = SshAttempt::select(DB::connection('mysql_threat')->raw("DATE_FORMAT(timestamp, '{$groupFormat}') as label, COUNT(*) as count"))
+        $ssh = SshAttempt::select(DB::raw("DATE_FORMAT(timestamp, '{$groupFormat}') as label, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
             ->groupBy('label')
             ->pluck('count', 'label');
 
-        $nginx = NginxHit::select(DB::connection('mysql_threat')->raw("DATE_FORMAT(timestamp, '{$groupFormat}') as label, COUNT(*) as count"))
+        $nginx = NginxHit::select(DB::raw("DATE_FORMAT(timestamp, '{$groupFormat}') as label, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
             ->groupBy('label')
             ->pluck('count', 'label');
@@ -131,7 +131,7 @@ class ThreatIntelService
      */
     public function getTopSourceCountries(int $limit = 10): array
     {
-        return ThreatIp::select('country', 'country_code', DB::connection('mysql_threat')->raw('SUM(total_hits) as count'))
+        return ThreatIp::select('country', 'country_code', DB::raw('SUM(total_hits) as count'))
             ->whereNotNull('country')
             ->groupBy('country', 'country_code')
             ->orderByDesc('count')
@@ -150,7 +150,7 @@ class ThreatIntelService
      */
     public function getTopIsps(int $limit = 10): array
     {
-        return ThreatIp::select('isp', DB::connection('mysql_threat')->raw('COUNT(*) as count'))
+        return ThreatIp::select('isp', DB::raw('COUNT(*) as count'))
             ->whereNotNull('isp')
             ->groupBy('isp')
             ->orderByDesc('count')
@@ -168,7 +168,7 @@ class ThreatIntelService
      */
     public function getTopSshUsernames(int $limit = 20): array
     {
-        return SshAttempt::select('username', DB::connection('mysql_threat')->raw('COUNT(*) as count'))
+        return SshAttempt::select('username', DB::raw('COUNT(*) as count'))
             ->whereNotNull('username')
             ->groupBy('username')
             ->orderByDesc('count')
@@ -186,7 +186,7 @@ class ThreatIntelService
      */
     public function getTopNginxPaths(int $limit = 20): array
     {
-        return NginxHit::select('path', 'scan_type', DB::connection('mysql_threat')->raw('COUNT(*) as count'))
+        return NginxHit::select('path', 'scan_type', DB::raw('COUNT(*) as count'))
             ->whereNotNull('path')
             ->groupBy('path', 'scan_type')
             ->orderByDesc('count')
@@ -256,12 +256,12 @@ class ThreatIntelService
             default => now()->subHours(24),
         };
 
-        $ssh = SshAttempt::select(DB::connection('mysql_threat')->raw('HOUR(timestamp) as hour, COUNT(*) as count'))
+        $ssh = SshAttempt::select(DB::raw('HOUR(timestamp) as hour, COUNT(*) as count'))
             ->where('timestamp', '>=', $since)
             ->groupBy('hour')
             ->pluck('count', 'hour');
 
-        $nginx = NginxHit::select(DB::connection('mysql_threat')->raw('HOUR(timestamp) as hour, COUNT(*) as count'))
+        $nginx = NginxHit::select(DB::raw('HOUR(timestamp) as hour, COUNT(*) as count'))
             ->where('timestamp', '>=', $since)
             ->groupBy('hour')
             ->pluck('count', 'hour');

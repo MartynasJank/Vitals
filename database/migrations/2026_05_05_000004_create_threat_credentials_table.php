@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::connection('mysql_threat')->create('credentials', function (Blueprint $table) {
+        Schema->create('credentials', function (Blueprint $table) {
             $table->id();
             $table->string('username', 255);
             $table->string('password', 255);
@@ -22,6 +22,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::connection('mysql_threat')->dropIfExists('credentials');
+        Schema->dropIfExists('credentials');
     }
 };

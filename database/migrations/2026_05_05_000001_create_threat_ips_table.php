@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::connection('mysql_threat')->create('threat_ips', function (Blueprint $table) {
+        Schema::create('threat_ips', function (Blueprint $table) {
             $table->id();
             $table->string('ip', 45)->unique();
             $table->string('country', 100)->nullable();
@@ -27,6 +27,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::connection('mysql_threat')->dropIfExists('threat_ips');
+        Schema::dropIfExists('threat_ips');
     }
 };
