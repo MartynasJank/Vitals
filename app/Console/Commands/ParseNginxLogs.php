@@ -8,11 +8,11 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
-#[Signature('vitals:parse-nginx-logs {--log=/var/log/nginx/access.log}')]
-#[Description('Parse Nginx access log for bot hits and store in threat intel database')]
+#[Signature('vitals:parse-nginx-logs')]
+#[Description('Parse all Nginx access logs for bot hits and store in threat intel database')]
 class ParseNginxLogs extends Command
 {
-    private const STATE_FILE = 'nginx_parse_state.txt';
+    private const STATE_FILE = 'nginx_parse_state.json';
 
     private const SCAN_PATTERNS = [
         '/\.env/i' => 'env_probe',
@@ -27,64 +27,76 @@ class ParseNginxLogs extends Command
 
     public function handle(ThreatIntelService $threatIntel): void
     {
-        $logFile = $this->option('log');
+        $logFiles = glob('/var/log/nginx/*access*.log') ?: [];
+
+        if (empty($logFiles)) {
+            $this->warn('No Nginx access log files found.');
+
+            return;
+        }
+
         $stateFile = storage_path('app/'.self::STATE_FILE);
+        $state = file_exists($stateFile) ? (json_decode(file_get_contents($stateFile), true) ?? []) : [];
 
-        if (! file_exists($logFile)) {
-            $this->warn("Log file not found: {$logFile}");
+        $totalProcessed = 0;
 
-            return;
-        }
+        foreach ($logFiles as $logFile) {
+            $offset = $state[$logFile] ?? 0;
+            $fileSize = filesize($logFile);
 
-        $offset = file_exists($stateFile) ? (int) file_get_contents($stateFile) : 0;
-        $fileSize = filesize($logFile);
+            if ($offset > $fileSize) {
+                $offset = 0;
+            }
 
-        if ($offset > $fileSize) {
-            $offset = 0;
-        }
+            $handle = fopen($logFile, 'r');
 
-        $handle = fopen($logFile, 'r');
+            if (! $handle) {
+                $this->warn("Cannot open log file: {$logFile}");
 
-        if (! $handle) {
-            $this->error("Cannot open log file: {$logFile}");
+                continue;
+            }
 
-            return;
-        }
+            fseek($handle, $offset);
 
-        fseek($handle, $offset);
+            $processed = 0;
 
-        $processed = 0;
+            while (($line = fgets($handle)) !== false) {
+                $hit = $this->parseLine(trim($line));
 
-        while (($line = fgets($handle)) !== false) {
-            $hit = $this->parseLine(trim($line));
+                if ($hit) {
+                    try {
+                        $ipId = $threatIntel->upsertIpWithEnrichment($hit['ip']);
 
-            if ($hit) {
-                try {
-                    $ipId = $threatIntel->upsertIpWithEnrichment($hit['ip']);
+                        NginxHit::create([
+                            'ip_id' => $ipId,
+                            'path' => $hit['path'],
+                            'method' => $hit['method'],
+                            'status_code' => $hit['status_code'],
+                            'user_agent' => $hit['user_agent'],
+                            'scan_type' => $hit['scan_type'],
+                            'timestamp' => $hit['timestamp'],
+                        ]);
 
-                    NginxHit::create([
-                        'ip_id' => $ipId,
-                        'path' => $hit['path'],
-                        'method' => $hit['method'],
-                        'status_code' => $hit['status_code'],
-                        'user_agent' => $hit['user_agent'],
-                        'scan_type' => $hit['scan_type'],
-                        'timestamp' => $hit['timestamp'],
-                    ]);
-
-                    $processed++;
-                } catch (\Exception $e) {
-                    $this->warn("Failed to process hit: {$e->getMessage()}");
+                        $processed++;
+                    } catch (\Exception $e) {
+                        $this->warn("Failed to process hit: {$e->getMessage()}");
+                    }
                 }
+            }
+
+            $state[$logFile] = ftell($handle);
+            fclose($handle);
+
+            $totalProcessed += $processed;
+
+            if ($processed > 0) {
+                $this->line("  {$logFile}: {$processed} hits");
             }
         }
 
-        $newOffset = ftell($handle);
-        fclose($handle);
+        file_put_contents($stateFile, json_encode($state));
 
-        file_put_contents($stateFile, (string) $newOffset);
-
-        $this->info("Processed {$processed} bot hits. Offset: {$newOffset}.");
+        $this->info("Processed {$totalProcessed} bot hits across ".count($logFiles).' log file(s).');
     }
 
     /**
@@ -92,7 +104,6 @@ class ParseNginxLogs extends Command
      */
     private function parseLine(string $line): ?array
     {
-        // Standard Nginx combined log format
         $pattern = '/^([\d.a-fA-F:]+) - \S+ \[([^\]]+)\] "(\S+) (\S+) [^"]*" (\d{3}) \d+ "[^"]*" "([^"]*)"/';
 
         if (! preg_match($pattern, $line, $m)) {
@@ -112,8 +123,8 @@ class ParseNginxLogs extends Command
 
         $scanType = 'other';
 
-        foreach (self::SCAN_PATTERNS as $pattern => $type) {
-            if (preg_match($pattern, $path)) {
+        foreach (self::SCAN_PATTERNS as $scanPattern => $type) {
+            if (preg_match($scanPattern, $path)) {
                 $scanType = $type;
                 break;
             }
