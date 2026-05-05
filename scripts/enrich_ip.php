@@ -92,10 +92,7 @@ try {
         $ipId = (int) $pdo->lastInsertId();
     }
 
-    if ($source === 'ssh') {
-        $pdo->prepare('INSERT INTO ssh_attempts (ip_id, timestamp) VALUES (?, NOW())')
-            ->execute([$ipId]);
-    } elseif ($source === 'nginx') {
+    if ($source === 'nginx') {
         $pdo->prepare('INSERT INTO nginx_hits (ip_id, scan_type, timestamp) VALUES (?, ?, NOW())')
             ->execute([$ipId, 'other']);
     }
