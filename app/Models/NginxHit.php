@@ -17,6 +17,7 @@ class NginxHit extends Model
         'method',
         'status_code',
         'user_agent',
+        'referer',
         'scan_type',
         'timestamp',
     ];
