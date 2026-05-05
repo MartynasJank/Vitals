@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NginxHit extends Model
 {
-    protected $connection = 'mysql_threat';
-
     protected $table = 'nginx_hits';
 
     public $timestamps = false;

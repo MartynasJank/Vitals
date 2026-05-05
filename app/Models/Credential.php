@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Credential extends Model
 {
-    protected $connection = 'mysql_threat';
-
     protected $table = 'credentials';
 
     public $timestamps = false;

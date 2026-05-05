@@ -64,23 +64,6 @@ return [
             ]) : [],
         ],
 
-        'mysql_threat' => [
-            'driver' => 'mysql',
-            'host' => env('THREAT_DB_HOST', '127.0.0.1'),
-            'port' => env('THREAT_DB_PORT', '3306'),
-            'database' => env('THREAT_DB_DATABASE', 'vitals_threat'),
-            'username' => env('THREAT_DB_USERNAME', 'vitals'),
-            'password' => env('THREAT_DB_PASSWORD', ''),
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'strict' => true,
-            'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
-        ],
-
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

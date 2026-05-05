@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SshAttempt extends Model
 {
-    protected $connection = 'mysql_threat';
-
     protected $table = 'ssh_attempts';
 
     public $timestamps = false;

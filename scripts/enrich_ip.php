@@ -45,11 +45,11 @@ foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line)
     $env[trim($key)] = trim($value, " \t\n\r\0\x0B\"'");
 }
 
-$host = $env['THREAT_DB_HOST'] ?? '127.0.0.1';
-$port = $env['THREAT_DB_PORT'] ?? '3306';
-$dbName = $env['THREAT_DB_DATABASE'] ?? 'vitals_threat';
-$user = $env['THREAT_DB_USERNAME'] ?? 'vitals';
-$pass = $env['THREAT_DB_PASSWORD'] ?? '';
+$host = $env['DB_HOST'] ?? '127.0.0.1';
+$port = $env['DB_PORT'] ?? '3306';
+$dbName = $env['DB_DATABASE'] ?? 'vitals';
+$user = $env['DB_USERNAME'] ?? 'root';
+$pass = $env['DB_PASSWORD'] ?? '';
 
 try {
     $pdo = new PDO(

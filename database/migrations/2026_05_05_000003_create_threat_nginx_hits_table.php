@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::connection('mysql_threat')->create('nginx_hits', function (Blueprint $table) {
+        Schema->create('nginx_hits', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ip_id')->constrained('threat_ips')->cascadeOnDelete();
             $table->string('path', 2048)->nullable();
@@ -26,6 +26,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::connection('mysql_threat')->dropIfExists('nginx_hits');
+        Schema->dropIfExists('nginx_hits');
     }
 };

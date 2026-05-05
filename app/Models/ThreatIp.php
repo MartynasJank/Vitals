@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ThreatIp extends Model
 {
-    protected $connection = 'mysql_threat';
-
     protected $table = 'threat_ips';
 
     public $timestamps = false;
