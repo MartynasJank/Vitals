@@ -6,6 +6,7 @@ use App\Models\ResourceSnapshot;
 use App\Models\SiteCheck;
 use App\Services\ServerService;
 use App\Services\SystemServiceManager;
+use App\Services\ThreatIntelService;
 use Illuminate\View\View;
 use Livewire\Attributes\Poll;
 use Livewire\Component;
@@ -42,6 +43,8 @@ class Dashboard extends Component
 
     /** @var array<int, array{level: string, message: string}> */
     public array $alerts = [];
+
+    public int $attacksLast24h = 0;
 
     #[Poll('5s')]
     public function refresh(): void
@@ -82,6 +85,12 @@ class Dashboard extends Component
             ->all();
 
         $this->alerts = $this->computeAlerts();
+
+        try {
+            $this->attacksLast24h = app(ThreatIntelService::class)->getTotalAttacksLast24h();
+        } catch (\Exception) {
+            $this->attacksLast24h = 0;
+        }
     }
 
     public function mount(): void
