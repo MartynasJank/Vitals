@@ -17,6 +17,7 @@
          data-heatmap="{{ json_encode($attackHeatmap) }}"
          data-countries="{{ json_encode($topCountries) }}"
          data-isps="{{ json_encode($topIsps) }}"
+         data-orgs="{{ json_encode($topOrgs) }}"
          data-origins="{{ json_encode($attackOrigins) }}">
     </div>
 
@@ -80,8 +81,8 @@
         @endif
     </div>
 
-    {{-- Countries + ISPs --}}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+    {{-- Countries + ISPs + Orgs --}}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">Top Source Countries</p>
             @if(empty($topCountries))
@@ -94,7 +95,7 @@
         </div>
 
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">Top ISPs / Hosting</p>
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">Top ISPs</p>
             @if(empty($topIsps))
                 <p class="text-sm text-gray-600 font-mono">No data yet</p>
             @else
@@ -103,10 +104,21 @@
                 </div>
             @endif
         </div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">Top Orgs</p>
+            @if(empty($topOrgs))
+                <p class="text-sm text-gray-600 font-mono">No data yet</p>
+            @else
+                <div class="h-48" wire:ignore>
+                    <canvas id="orgsChart"></canvas>
+                </div>
+            @endif
+        </div>
     </div>
 
     {{-- Tables row --}}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         {{-- Top SSH usernames --}}
         <div class="bg-gray-900 border border-gray-800 rounded-lg">
             <div class="px-5 py-4 border-b border-gray-800">
@@ -162,6 +174,30 @@
                                 ">{{ $row['scan_type'] }}</span>
                                 <span class="text-xs font-mono text-amber-400">{{ number_format($row['count']) }}</span>
                             </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        {{-- Top scanner referers --}}
+        <div class="bg-gray-900 border border-gray-800 rounded-lg">
+            <div class="px-5 py-4 border-b border-gray-800">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Top Scanner Referers</p>
+            </div>
+            @if(empty($topReferers))
+                <div class="p-5">
+                    <p class="text-sm text-gray-600 font-mono">No data yet</p>
+                </div>
+            @else
+                <div class="divide-y divide-gray-800">
+                    @foreach($topReferers as $i => $row)
+                        <div class="px-5 py-2.5 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="text-xs font-mono text-gray-600 w-5 text-right flex-shrink-0">{{ $i + 1 }}</span>
+                                <p class="text-xs font-mono text-gray-400 truncate">{{ $row['referer'] }}</p>
+                            </div>
+                            <span class="text-xs font-mono text-amber-400 flex-shrink-0">{{ number_format($row['count']) }}</span>
                         </div>
                     @endforeach
                 </div>
@@ -231,6 +267,7 @@
             heatmap: JSON.parse(el.dataset.heatmap || '[]'),
             countries: JSON.parse(el.dataset.countries || '[]'),
             isps: JSON.parse(el.dataset.isps || '[]'),
+            orgs: JSON.parse(el.dataset.orgs || '[]'),
             origins: JSON.parse(el.dataset.origins || '[]'),
         };
     };
@@ -266,6 +303,16 @@
         data: {
             labels: d.countries.map(r => r.country),
             datasets: [{ data: d.countries.map(r => r.count), backgroundColor: 'rgba(96,165,250,0.7)', borderRadius: 2 }],
+        },
+        options: barOpts(true),
+    }) : null;
+
+    const orgsEl = document.getElementById('orgsChart');
+    const orgsChart = orgsEl ? new Chart(orgsEl, {
+        type: 'bar',
+        data: {
+            labels: d.orgs.map(r => r.org),
+            datasets: [{ data: d.orgs.map(r => r.count), backgroundColor: 'rgba(52,211,153,0.7)', borderRadius: 2 }],
         },
         options: barOpts(true),
     }) : null;
@@ -324,6 +371,12 @@
             countriesChart.data.labels = updated.countries.map(r => r.country);
             countriesChart.data.datasets[0].data = updated.countries.map(r => r.count);
             countriesChart.update('none');
+        }
+
+        if (orgsChart) {
+            orgsChart.data.labels = updated.orgs.map(r => r.org);
+            orgsChart.data.datasets[0].data = updated.orgs.map(r => r.count);
+            orgsChart.update('none');
         }
 
         if (ispsChart) {

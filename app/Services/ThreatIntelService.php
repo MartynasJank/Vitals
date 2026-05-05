@@ -168,6 +168,24 @@ class ThreatIntelService
     }
 
     /**
+     * @return array<int, array{org: string, count: int}>
+     */
+    public function getTopOrgs(int $limit = 10): array
+    {
+        return ThreatIp::select('org', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('org')
+            ->groupBy('org')
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => [
+                'org' => $row->org,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+    }
+
+    /**
      * @return array<int, array{isp: string, count: int}>
      */
     public function getTopIsps(int $limit = 10): array
@@ -198,6 +216,24 @@ class ThreatIntelService
             ->get()
             ->map(fn ($row) => [
                 'username' => $row->username,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{referer: string, count: int}>
+     */
+    public function getTopReferers(int $limit = 15): array
+    {
+        return NginxHit::select('referer', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('referer')
+            ->groupBy('referer')
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => [
+                'referer' => $row->referer,
                 'count' => (int) $row->count,
             ])
             ->all();
