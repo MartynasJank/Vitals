@@ -47,6 +47,25 @@ class ThreatIntelService
     /**
      * @return array<string, mixed>
      */
+    public function fetchGeoForBackfill(string $ip): array
+    {
+        try {
+            $response = Http::timeout(5)->get("http://ip-api.com/json/{$ip}", [
+                'fields' => 'lat,lon,org',
+            ]);
+
+            if ($response->successful()) {
+                return $response->json() ?? [];
+            }
+        } catch (\Exception) {
+        }
+
+        return [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function fetchGeoData(string $ip): array
     {
         try {
