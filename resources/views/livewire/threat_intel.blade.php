@@ -16,7 +16,8 @@
          data-volume="{{ json_encode($attackVolume) }}"
          data-heatmap="{{ json_encode($attackHeatmap) }}"
          data-countries="{{ json_encode($topCountries) }}"
-         data-isps="{{ json_encode($topIsps) }}">
+         data-isps="{{ json_encode($topIsps) }}"
+         data-origins="{{ json_encode($attackOrigins) }}">
     </div>
 
     {{-- Attack volume --}}
@@ -65,6 +66,18 @@
                 <p class="text-xs text-gray-600 mt-1">attacking both SSH & Nginx</p>
             </div>
         </div>
+    </div>
+
+    {{-- Attack origin map --}}
+    <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-4">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">Attack Origin Map</p>
+        @if(empty($attackOrigins))
+            <p class="text-sm text-gray-600 font-mono">No geo data yet — IPs will be plotted as they are enriched</p>
+        @else
+            <div class="h-52" wire:ignore>
+                <canvas id="originsChart"></canvas>
+            </div>
+        @endif
     </div>
 
     {{-- Countries + ISPs --}}
@@ -218,6 +231,7 @@
             heatmap: JSON.parse(el.dataset.heatmap || '[]'),
             countries: JSON.parse(el.dataset.countries || '[]'),
             isps: JSON.parse(el.dataset.isps || '[]'),
+            origins: JSON.parse(el.dataset.origins || '[]'),
         };
     };
 
@@ -266,6 +280,31 @@
         options: barOpts(true),
     }) : null;
 
+    const originsEl = document.getElementById('originsChart');
+    const originsChart = originsEl ? new Chart(originsEl, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                data: d.origins.map(r => ({ x: r.lon, y: r.lat })),
+                pointRadius: d.origins.map(r => Math.min(2 + Math.log2(r.count + 1), 8)),
+                pointBackgroundColor: 'rgba(248,113,113,0.6)',
+                pointBorderWidth: 0,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: { legend: { display: false }, tooltip: {
+                callbacks: { label: ctx => `${ctx.parsed.y.toFixed(1)}°, ${ctx.parsed.x.toFixed(1)}°` },
+            }},
+            scales: {
+                x: { min: -180, max: 180, ticks: { color: '#6b7280', font: { size: 11 }, maxTicksLimit: 7, callback: v => v + '°' }, grid: { color: 'rgba(75,85,99,0.1)' } },
+                y: { min: -90, max: 90, ticks: { color: '#6b7280', font: { size: 11 }, maxTicksLimit: 5, callback: v => v + '°' }, grid: { color: 'rgba(75,85,99,0.1)' } },
+            },
+        },
+    }) : null;
+
     new MutationObserver(() => {
         const updated = readData();
 
@@ -291,6 +330,12 @@
             ispsChart.data.labels = updated.isps.map(r => r.isp);
             ispsChart.data.datasets[0].data = updated.isps.map(r => r.count);
             ispsChart.update('none');
+        }
+
+        if (originsChart) {
+            originsChart.data.datasets[0].data = updated.origins.map(r => ({ x: r.lon, y: r.lat }));
+            originsChart.data.datasets[0].pointRadius = updated.origins.map(r => Math.min(2 + Math.log2(r.count + 1), 8));
+            originsChart.update('none');
         }
     }).observe(document.getElementById('threatChartData'), { attributes: true });
 </script>
