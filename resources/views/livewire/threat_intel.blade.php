@@ -75,9 +75,7 @@
         @if(empty($attackOrigins))
             <p class="text-sm text-gray-600 font-mono">No geo data yet — IPs will be plotted as they are enriched</p>
         @else
-            <div class="h-52" wire:ignore>
-                <canvas id="originsChart"></canvas>
-            </div>
+            <div id="originsMap" class="h-52 rounded-lg" wire:ignore></div>
         @endif
     </div>
 
@@ -327,30 +325,31 @@
         options: barOpts(true),
     }) : null;
 
-    const originsEl = document.getElementById('originsChart');
-    const originsChart = originsEl ? new Chart(originsEl, {
-        type: 'scatter',
-        data: {
-            datasets: [{
-                data: d.origins.map(r => ({ x: r.lon, y: r.lat })),
-                pointRadius: d.origins.map(r => Math.min(2 + Math.log2(r.count + 1), 8)),
-                pointBackgroundColor: 'rgba(248,113,113,0.6)',
-                pointBorderWidth: 0,
-            }],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            plugins: { legend: { display: false }, tooltip: {
-                callbacks: { label: ctx => `${ctx.parsed.y.toFixed(1)}°, ${ctx.parsed.x.toFixed(1)}°` },
-            }},
-            scales: {
-                x: { min: -180, max: 180, ticks: { color: '#6b7280', font: { size: 11 }, maxTicksLimit: 7, callback: v => v + '°' }, grid: { color: 'rgba(75,85,99,0.1)' } },
-                y: { min: -90, max: 90, ticks: { color: '#6b7280', font: { size: 11 }, maxTicksLimit: 5, callback: v => v + '°' }, grid: { color: 'rgba(75,85,99,0.1)' } },
-            },
-        },
-    }) : null;
+    const originsMapEl = document.getElementById('originsMap');
+    let attackMap = null;
+    let markersLayer = null;
+
+    const plotOrigins = (origins) => {
+        if (! markersLayer) { return; }
+        markersLayer.clearLayers();
+        origins.forEach(r => {
+            const radius = Math.min(3 + Math.log2(r.count + 1) * 2, 14);
+            L.circleMarker([r.lat, r.lon], {
+                radius,
+                fillColor: '#f87171',
+                color: 'transparent',
+                fillOpacity: 0.65,
+            }).bindTooltip(`${r.count} attack${r.count !== 1 ? 's' : ''} · ${r.lat.toFixed(1)}°, ${r.lon.toFixed(1)}°`, { className: 'leaflet-dark-tooltip' })
+              .addTo(markersLayer);
+        });
+    };
+
+    if (originsMapEl) {
+        attackMap = L.map(originsMapEl, { zoomControl: false, attributionControl: false, scrollWheelZoom: false }).setView([20, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(attackMap);
+        markersLayer = L.layerGroup().addTo(attackMap);
+        plotOrigins(d.origins);
+    }
 
     new MutationObserver(() => {
         const updated = readData();
@@ -385,11 +384,13 @@
             ispsChart.update('none');
         }
 
-        if (originsChart) {
-            originsChart.data.datasets[0].data = updated.origins.map(r => ({ x: r.lon, y: r.lat }));
-            originsChart.data.datasets[0].pointRadius = updated.origins.map(r => Math.min(2 + Math.log2(r.count + 1), 8));
-            originsChart.update('none');
+        if (attackMap) {
+            plotOrigins(updated.origins);
         }
     }).observe(document.getElementById('threatChartData'), { attributes: true });
 </script>
+<style>
+    .leaflet-dark-tooltip { background: #1f2937; border: 1px solid #374151; color: #d1d5db; font-family: monospace; font-size: 11px; box-shadow: none; }
+    .leaflet-dark-tooltip::before { display: none; }
+</style>
 @endscript
