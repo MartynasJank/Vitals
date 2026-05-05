@@ -9,6 +9,7 @@ use App\Livewire\Resources;
 use App\Livewire\Security;
 use App\Livewire\Services;
 use App\Livewire\Sites;
+use App\Livewire\ThreatIntel;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', fn () => view('auth.login'))->name('login');
@@ -24,4 +25,5 @@ Route::middleware(RequireAuth::class)->group(function () {
     Route::get('/security', Security::class)->name('security');
     Route::get('/logs', Logs::class)->name('logs');
     Route::get('/databases', Databases::class)->name('databases');
+    Route::get('/threat-intel', ThreatIntel::class)->name('threat-intel');
 });

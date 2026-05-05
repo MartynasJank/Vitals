@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Services\ThreatIntelService;
+use Illuminate\View\View;
+use Livewire\Attributes\Poll;
+use Livewire\Component;
+
+class ThreatIntel extends Component
+{
+    public string $timeRange = '24h';
+
+    /** @var array<int, array{label: string, ssh: int, nginx: int}> */
+    public array $attackVolume = [];
+
+    /** @var array<int, array{country: string, country_code: string, count: int}> */
+    public array $topCountries = [];
+
+    /** @var array<int, array{isp: string, count: int}> */
+    public array $topIsps = [];
+
+    /** @var array<int, array{username: string, count: int}> */
+    public array $topUsernames = [];
+
+    /** @var array<int, array{path: string, count: int, scan_type: string}> */
+    public array $topPaths = [];
+
+    public float $repeatOffenderRate = 0.0;
+
+    /** @var array<int, array{ip: string, country: string|null, country_code: string|null, isp: string|null, ssh_count: int, nginx_count: int, total_hits: int}> */
+    public array $crossSourceIps = [];
+
+    /** @var array<int, int> */
+    public array $attackHeatmap = [];
+
+    public function mount(): void
+    {
+        $this->loadData();
+    }
+
+    #[Poll('60s')]
+    public function loadData(): void
+    {
+        try {
+            $service = app(ThreatIntelService::class);
+
+            $this->attackVolume = $service->getAttackVolumeOverTime($this->timeRange);
+            $this->topCountries = $service->getTopSourceCountries();
+            $this->topIsps = $service->getTopIsps();
+            $this->topUsernames = $service->getTopSshUsernames();
+            $this->topPaths = $service->getTopNginxPaths();
+            $this->repeatOffenderRate = $service->getRepeatOffenderRate();
+            $this->crossSourceIps = $service->getCrossSourceIps();
+            $this->attackHeatmap = $service->getAttackHeatmap($this->timeRange);
+        } catch (\Exception) {
+            // Degrade gracefully if the threat DB is not yet configured
+        }
+    }
+
+    public function setRange(string $range): void
+    {
+        $this->timeRange = $range;
+        $this->loadData();
+    }
+
+    public function render(): View
+    {
+        return view('livewire.threat_intel');
+    }
+}
