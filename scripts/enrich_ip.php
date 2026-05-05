@@ -75,8 +75,8 @@ try {
         $geo = fetchGeoData($ip);
 
         $stmt = $pdo->prepare('
-            INSERT INTO threat_ips (ip, country, country_code, city, isp, asn, is_proxy, is_vpn, is_tor, total_hits, first_seen, last_seen)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
+            INSERT INTO threat_ips (ip, country, country_code, city, isp, asn, lat, lon, org, is_proxy, is_vpn, is_tor, total_hits, first_seen, last_seen)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
         ');
         $stmt->execute([
             $ip,
@@ -85,6 +85,9 @@ try {
             $geo['city'] ?? null,
             $geo['isp'] ?? null,
             $geo['as'] ?? null,
+            isset($geo['lat']) ? (float) $geo['lat'] : null,
+            isset($geo['lon']) ? (float) $geo['lon'] : null,
+            $geo['org'] ?? null,
             (int) ($geo['proxy'] ?? false),
             (int) ($geo['proxy'] ?? false),
             (int) ($geo['hosting'] ?? false),
@@ -104,7 +107,7 @@ exit(0);
 
 function fetchGeoData(string $ip): array
 {
-    $url = "http://ip-api.com/json/{$ip}?fields=country,countryCode,city,isp,as,proxy,hosting";
+    $url = "http://ip-api.com/json/{$ip}?fields=country,countryCode,city,isp,as,org,lat,lon,proxy,hosting";
 
     $ctx = stream_context_create(['http' => ['timeout' => 5]]);
 

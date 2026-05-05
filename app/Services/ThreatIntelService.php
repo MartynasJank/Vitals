@@ -30,6 +30,9 @@ class ThreatIntelService
             'city' => $geo['city'] ?? null,
             'isp' => $geo['isp'] ?? null,
             'asn' => $geo['as'] ?? null,
+            'lat' => isset($geo['lat']) ? (float) $geo['lat'] : null,
+            'lon' => isset($geo['lon']) ? (float) $geo['lon'] : null,
+            'org' => $geo['org'] ?? null,
             'is_proxy' => (bool) ($geo['proxy'] ?? false),
             'is_vpn' => (bool) ($geo['proxy'] ?? false),
             'is_tor' => (bool) ($geo['hosting'] ?? false),
@@ -48,7 +51,7 @@ class ThreatIntelService
     {
         try {
             $response = Http::timeout(5)->get("http://ip-api.com/json/{$ip}", [
-                'fields' => 'country,countryCode,city,isp,as,proxy,hosting',
+                'fields' => 'country,countryCode,city,isp,as,org,lat,lon,proxy,hosting',
             ]);
 
             if ($response->successful()) {
@@ -273,6 +276,32 @@ class ThreatIntelService
         }
 
         return $heatmap;
+    }
+
+    /**
+     * Returns attack origin coordinates for map visualization, grouped into ~1° cells.
+     *
+     * @return array<int, array{lat: float, lon: float, count: int}>
+     */
+    public function getAttackOrigins(): array
+    {
+        return ThreatIp::select(
+            DB::raw('ROUND(lat, 1) as lat'),
+            DB::raw('ROUND(lon, 1) as lon'),
+            DB::raw('SUM(total_hits) as count')
+        )
+            ->whereNotNull('lat')
+            ->whereNotNull('lon')
+            ->groupBy('lat', 'lon')
+            ->orderByDesc('count')
+            ->limit(500)
+            ->get()
+            ->map(fn ($row) => [
+                'lat' => (float) $row->lat,
+                'lon' => (float) $row->lon,
+                'count' => (int) $row->count,
+            ])
+            ->all();
     }
 
     public function getTotalAttacksLast24h(): int
