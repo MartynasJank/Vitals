@@ -70,12 +70,16 @@
     </div>
 
     {{-- Attack origin map --}}
-    <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-4">
-        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">Attack Origin Map</p>
+    <div class="bg-gray-900 border border-gray-800 rounded-lg mb-4 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-800">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Attack Origin Map</p>
+        </div>
         @if(empty($attackOrigins))
-            <p class="text-sm text-gray-600 font-mono">No geo data yet — IPs will be plotted as they are enriched</p>
+            <div class="p-5">
+                <p class="text-sm text-gray-600 font-mono">No geo data yet — IPs will be plotted as they are enriched</p>
+            </div>
         @else
-            <div id="originsMap" class="h-96 rounded-lg" wire:ignore></div>
+            <div id="originsMap" class="h-[500px]" wire:ignore></div>
         @endif
     </div>
 
