@@ -132,7 +132,7 @@ class ParseNginxLogs extends Command
         }
 
         try {
-            $timestamp = date('Y-m-d H:i:s', strtotime($timeStr));
+            $timestamp = gmdate('Y-m-d H:i:s', strtotime($timeStr));
         } catch (\Exception) {
             $timestamp = now()->toDateTimeString();
         }

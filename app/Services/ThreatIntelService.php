@@ -134,17 +134,19 @@ class ThreatIntelService
             default => [now()->subHours(24), '%Y-%m-%d %H:00', 'Y-m-d H:00'],
         };
 
-        $ssh = SshAttempt::select(DB::raw("DATE_FORMAT(timestamp, '{$groupFormat}') as label, COUNT(*) as count"))
+        $tz = now()->format('P');
+
+        $ssh = SshAttempt::select(DB::raw("DATE_FORMAT(CONVERT_TZ(timestamp, '+00:00', '{$tz}'), '{$groupFormat}') as label, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
             ->groupBy('label')
             ->pluck('count', 'label');
 
-        $cowrie = CowrieLogin::select(DB::raw("DATE_FORMAT(timestamp, '{$groupFormat}') as label, COUNT(*) as count"))
+        $cowrie = CowrieLogin::select(DB::raw("DATE_FORMAT(CONVERT_TZ(timestamp, '+00:00', '{$tz}'), '{$groupFormat}') as label, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
             ->groupBy('label')
             ->pluck('count', 'label');
 
-        $nginx = NginxHit::select(DB::raw("DATE_FORMAT(timestamp, '{$groupFormat}') as label, COUNT(*) as count"))
+        $nginx = NginxHit::select(DB::raw("DATE_FORMAT(CONVERT_TZ(timestamp, '+00:00', '{$tz}'), '{$groupFormat}') as label, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
             ->groupBy('label')
             ->pluck('count', 'label');
@@ -335,17 +337,19 @@ class ThreatIntelService
             default => now()->subHours(24),
         };
 
-        $ssh = SshAttempt::select(DB::raw('HOUR(timestamp) as hour, COUNT(*) as count'))
+        $tz = now()->format('P');
+
+        $ssh = SshAttempt::select(DB::raw("HOUR(CONVERT_TZ(timestamp, '+00:00', '{$tz}')) as hour, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
             ->groupBy('hour')
             ->pluck('count', 'hour');
 
-        $cowrie = CowrieLogin::select(DB::raw('HOUR(timestamp) as hour, COUNT(*) as count'))
+        $cowrie = CowrieLogin::select(DB::raw("HOUR(CONVERT_TZ(timestamp, '+00:00', '{$tz}')) as hour, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
             ->groupBy('hour')
             ->pluck('count', 'hour');
 
-        $nginx = NginxHit::select(DB::raw('HOUR(timestamp) as hour, COUNT(*) as count'))
+        $nginx = NginxHit::select(DB::raw("HOUR(CONVERT_TZ(timestamp, '+00:00', '{$tz}')) as hour, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
             ->groupBy('hour')
             ->pluck('count', 'hour');

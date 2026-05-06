@@ -16,7 +16,7 @@ class ParseSshLogs extends Command
     {
         $logFile = $this->option('log');
 
-        if (!file_exists($logFile)) {
+        if (! file_exists($logFile)) {
             $this->warn("Log file not found: {$logFile}");
 
             return;
@@ -24,7 +24,7 @@ class ParseSshLogs extends Command
 
         $handle = fopen($logFile, 'r');
 
-        if (!$handle) {
+        if (! $handle) {
             $this->error("Cannot open log file: {$logFile}");
 
             return;
@@ -40,12 +40,13 @@ class ParseSshLogs extends Command
         while (($line = fgets($handle)) !== false) {
             $attempt = $this->parseLine(trim($line));
 
-            if (!$attempt) {
+            if (! $attempt) {
                 continue;
             }
 
             if ($attempt['timestamp'] <= $since) {
                 $skipped++;
+
                 continue;
             }
 
@@ -74,7 +75,7 @@ class ParseSshLogs extends Command
      */
     private function parseLine(string $line): ?array
     {
-        if (!str_contains($line, 'Failed password')) {
+        if (! str_contains($line, 'Failed password')) {
             return null;
         }
 
@@ -87,7 +88,7 @@ class ParseSshLogs extends Command
             return [
                 'ip' => $m[4],
                 'username' => $m[3],
-                'timestamp' => date('Y-m-d H:i:s', strtotime($m[1])),
+                'timestamp' => gmdate('Y-m-d H:i:s', strtotime($m[1])),
             ];
         }
 
@@ -97,16 +98,16 @@ class ParseSshLogs extends Command
             $line,
             $m
         )) {
-            $ts = strtotime(date('Y') . ' ' . $m[1]);
+            $ts = strtotime(gmdate('Y').' '.$m[1]);
 
             if ($ts > time() + 86400) {
-                $ts = strtotime((date('Y') - 1) . ' ' . $m[1]);
+                $ts = strtotime((gmdate('Y') - 1).' '.$m[1]);
             }
 
             return [
                 'ip' => $m[3],
                 'username' => $m[2],
-                'timestamp' => $ts ? date('Y-m-d H:i:s', $ts) : now()->toDateTimeString(),
+                'timestamp' => $ts ? gmdate('Y-m-d H:i:s', $ts) : now()->utc()->toDateTimeString(),
             ];
         }
 
