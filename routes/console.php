@@ -10,6 +10,7 @@ Schedule::command('vitals:snapshot')->everyFiveMinutes();
 Schedule::command('vitals:check-sites')->everyFiveMinutes();
 Schedule::command('vitals:parse-nginx-logs')->everyFiveMinutes();
 Schedule::command('vitals:parse-ssh-logs')->everyFiveMinutes();
+Schedule::command('vitals:parse-cowrie-logs')->everyMinute();
 
 Schedule::call(fn () => SshAttempt::where('timestamp', '<', now()->subDays(90))->delete())
     ->daily()
