@@ -82,7 +82,7 @@
     @endif
 
     {{-- Firewall Rules --}}
-    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Firewall Rules (UFW)</h2>
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Firewall Rules (iptables INPUT)</h2>
 
     @if(empty($firewallRules))
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-8">

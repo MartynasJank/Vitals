@@ -110,7 +110,7 @@ class SecurityService
      */
     public function getFirewallRules(): array
     {
-        $output = shell_exec('sudo ufw status numbered 2>/dev/null');
+        $output = shell_exec('sudo iptables -L INPUT -n --line-numbers 2>/dev/null');
 
         if (! $output) {
             return [];
@@ -119,9 +119,13 @@ class SecurityService
         $rules = [];
 
         foreach (explode("\n", $output) as $line) {
-            if (preg_match('/^\[\s*\d+\]/', $line)) {
-                $rules[] = trim($line);
+            $line = trim($line);
+
+            if (! preg_match('/^\d+\s+(ACCEPT|DROP|REJECT)/', $line)) {
+                continue;
             }
+
+            $rules[] = $line;
         }
 
         return $rules;
