@@ -46,4 +46,9 @@ class ThreatIp extends Model
     {
         return $this->hasMany(NginxHit::class, 'ip_id');
     }
+
+    public function cowrieSessions(): HasMany
+    {
+        return $this->hasMany(CowrieSession::class, 'ip_id');
+    }
 }
