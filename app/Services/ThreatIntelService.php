@@ -139,8 +139,8 @@ class ThreatIntelService
             ->groupBy('label')
             ->pluck('count', 'label');
 
-        $cowrie = CowrieSession::select(DB::raw("DATE_FORMAT(started_at, '{$groupFormat}') as label, COUNT(*) as count"))
-            ->where('started_at', '>=', $since)
+        $cowrie = CowrieLogin::select(DB::raw("DATE_FORMAT(timestamp, '{$groupFormat}') as label, COUNT(*) as count"))
+            ->where('timestamp', '>=', $since)
             ->groupBy('label')
             ->pluck('count', 'label');
 
@@ -340,8 +340,8 @@ class ThreatIntelService
             ->groupBy('hour')
             ->pluck('count', 'hour');
 
-        $cowrie = CowrieSession::select(DB::raw('HOUR(started_at) as hour, COUNT(*) as count'))
-            ->where('started_at', '>=', $since)
+        $cowrie = CowrieLogin::select(DB::raw('HOUR(timestamp) as hour, COUNT(*) as count'))
+            ->where('timestamp', '>=', $since)
             ->groupBy('hour')
             ->pluck('count', 'hour');
 
@@ -390,7 +390,7 @@ class ThreatIntelService
         $since = now()->subHours(24);
 
         return SshAttempt::where('timestamp', '>=', $since)->count()
-            + CowrieSession::where('started_at', '>=', $since)->count()
+            + CowrieLogin::where('timestamp', '>=', $since)->count()
             + NginxHit::where('timestamp', '>=', $since)->count();
     }
 
