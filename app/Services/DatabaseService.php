@@ -11,6 +11,8 @@ class DatabaseService
      */
     public function getDatabases(): array
     {
+        DB::statement('SET SESSION information_schema_stats_expiry = 0');
+
         $rows = DB::select("
             SELECT
                 table_schema AS name,
