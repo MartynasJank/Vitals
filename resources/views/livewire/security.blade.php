@@ -32,8 +32,52 @@
         </div>
     @endif
 
+    {{-- Honeypot logins --}}
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Recent Honeypot Logins</h2>
+
+    @if(empty($honeypotLogins))
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-8">
+            <p class="text-sm text-gray-500">No honeypot logins yet.</p>
+        </div>
+    @else
+        <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800 mb-8">
+            @foreach($honeypotLogins as $entry)
+                <div class="px-4 sm:px-5 py-3 {{ $entry['total_hits'] > 3 ? 'bg-red-950/20' : '' }}">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <p class="text-sm font-mono text-amber-400">{{ $entry['ip'] }}</p>
+                        <span class="text-gray-600">·</span>
+                        <p class="text-sm font-mono text-green-400">{{ $entry['user'] }}</p>
+
+                        @if($entry['country_code'])
+                            <img src="https://flagcdn.com/16x12/{{ $entry['country_code'] }}.png"
+                                 alt="{{ $entry['country'] ?? '' }}"
+                                 class="w-4 h-3 object-cover rounded-sm opacity-80">
+                        @endif
+
+                        @if($entry['country'])
+                            <span class="text-xs text-gray-500">{{ $entry['country'] }}</span>
+                        @endif
+
+                        @if($entry['isp'])
+                            <span class="text-xs text-gray-600 font-mono">{{ $entry['isp'] }}</span>
+                        @endif
+
+                        @if($entry['is_proxy'])
+                            <span class="text-xs px-1.5 py-0.5 rounded bg-yellow-900/30 text-yellow-400 font-mono">ANON</span>
+                        @endif
+
+                        @if($entry['total_hits'] > 3)
+                            <span class="text-xs px-1.5 py-0.5 rounded bg-red-900/30 text-red-400 font-mono">{{ $entry['total_hits'] }}× seen</span>
+                        @endif
+                    </div>
+                    <p class="text-xs font-mono text-gray-500 mt-0.5">{{ $entry['time'] }}</p>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
     {{-- Failed Logins --}}
-    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Recent Failed SSH Logins</h2>
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Recent Failed SSH Logins (auth.log)</h2>
 
     @if(empty($failedLogins))
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-8">
