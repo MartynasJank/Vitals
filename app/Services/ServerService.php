@@ -228,9 +228,10 @@ class ServerService
     /**
      * @return array<int, array{pid: int, user: string, cpu: float, memory: float, command: string}>
      */
-    public function getTopProcesses(): array
+    public function getTopProcesses(string $sortBy = 'cpu'): array
     {
-        $output = shell_exec('ps aux --sort=-%cpu | head -16');
+        $sort = $sortBy === 'memory' ? '-%mem' : '-%cpu';
+        $output = shell_exec("ps aux --sort={$sort} | head -16");
 
         if (! $output) {
             return [];
