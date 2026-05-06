@@ -37,6 +37,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          port: 2244
           source: "app/,bootstrap/,config/,database/migrations/,public/,resources/views/,routes/,scripts/,vendor/,composer.json,composer.lock,artisan,.env.example"
           target: "/var/www/vitals"
 
@@ -46,6 +47,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          port: 2244
           script: |
             cd /var/www/vitals
             mkdir -p storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
