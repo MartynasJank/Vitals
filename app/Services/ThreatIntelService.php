@@ -97,7 +97,7 @@ class ThreatIntelService
             ->limit($limit)
             ->get()
             ->map(fn ($attempt) => [
-                'time' => $attempt->timestamp?->format('H:i:s'),
+                'time' => $attempt->timestamp?->setTimezone(config('app.timezone'))->format('H:i:s'),
                 'user' => $attempt->username,
                 'ip' => $attempt->ip?->ip ?? '—',
                 'country' => $attempt->ip?->country,
@@ -404,7 +404,7 @@ class ThreatIntelService
             ->limit($limit)
             ->get()
             ->map(fn ($hit) => [
-                'time' => $hit->timestamp?->format('H:i:s'),
+                'time' => $hit->timestamp?->setTimezone(config('app.timezone'))->format('H:i:s'),
                 'ip' => $hit->ip?->ip ?? '—',
                 'country' => $hit->ip?->country,
                 'country_code' => $hit->ip?->country_code ? strtolower($hit->ip->country_code) : null,
@@ -426,7 +426,7 @@ class ThreatIntelService
             ->limit($limit)
             ->get()
             ->map(fn ($login) => [
-                'time' => $login->timestamp?->format('H:i:s'),
+                'time' => $login->timestamp?->setTimezone(config('app.timezone'))->format('H:i:s'),
                 'user' => $login->username,
                 'password' => $login->password,
                 'ip' => $login->session?->ip?->ip ?? '—',
@@ -472,7 +472,7 @@ class ThreatIntelService
                 'username' => $s->login?->username,
                 'password' => $s->login?->password,
                 'duration_seconds' => $s->duration_seconds,
-                'started_at' => $s->started_at?->toDateTimeString(),
+                'started_at' => $s->started_at?->setTimezone(config('app.timezone'))->toDateTimeString(),
                 'commands' => $s->commands->pluck('input')->filter(fn ($c) => $c !== '')->values()->all(),
             ])
             ->all();
