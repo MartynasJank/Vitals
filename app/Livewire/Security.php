@@ -16,7 +16,7 @@ class Security extends Component
     /** @var array<int, array{time: string, user: string, ip: string, country?: string, country_code?: string, isp?: string, asn?: string, is_proxy?: bool, is_vpn?: bool, is_tor?: bool, total_hits?: int}> */
     public array $failedLogins = [];
 
-    /** @var array<int, array{time: string, user: string, ip: string, country: string|null, country_code: string|null, isp: string|null, total_hits: int, is_proxy: bool}> */
+    /** @var array<int, array{time: string, user: string, password: string, ip: string, country: string|null, country_code: string|null, isp: string|null, total_hits: int, is_proxy: bool, is_success: bool}> */
     public array $honeypotLogins = [];
 
     /** @var array<int, array{time: string, user: string, ip: string}> */
