@@ -226,7 +226,7 @@ class ThreatIntelService
         $cowrie = CowrieLogin::select('username', DB::raw('COUNT(*) as count'))
             ->whereNotNull('username')
             ->groupBy('username')
-            ->pluck('count', 'username');
+            ->pluck('count', 'username'); // all attempts, success + failed
 
         return $ssh->mergeRecursive($cowrie)
             ->map(fn ($v) => is_array($v) ? array_sum($v) : (int) $v)
@@ -400,6 +400,7 @@ class ThreatIntelService
     public function getRecentHoneypotLogins(int $limit = 20): array
     {
         return CowrieLogin::with(['session.ip'])
+            ->where('is_success', true)
             ->orderByDesc('timestamp')
             ->limit($limit)
             ->get()

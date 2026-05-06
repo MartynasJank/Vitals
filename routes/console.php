@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\CowrieLogin;
 use App\Models\NginxHit;
 use App\Models\ResourceSnapshot;
 use App\Models\SiteCheck;
@@ -27,3 +28,7 @@ Schedule::call(fn () => ResourceSnapshot::where('recorded_at', '<', now()->subDa
 Schedule::call(fn () => SiteCheck::where('checked_at', '<', now()->subDays(30))->delete())
     ->daily()
     ->name('cleanup:site-checks');
+
+Schedule::call(fn () => CowrieLogin::where('is_success', false)->where('timestamp', '<', now()->subDays(30))->delete())
+    ->daily()
+    ->name('cleanup:cowrie-logins');

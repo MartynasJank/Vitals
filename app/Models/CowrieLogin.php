@@ -13,10 +13,12 @@ class CowrieLogin extends Model
         'cowrie_session_id',
         'username',
         'password',
+        'is_success',
         'timestamp',
     ];
 
     protected $casts = [
+        'is_success' => 'bool',
         'timestamp' => 'datetime',
     ];
 
