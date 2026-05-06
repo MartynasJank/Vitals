@@ -32,12 +32,12 @@
         </div>
     @endif
 
-    {{-- Honeypot logins --}}
-    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Recent Honeypot Logins</h2>
+    {{-- Honeypot attempts --}}
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Recent Cowrie SSH Attempts</h2>
 
     @if(empty($honeypotLogins))
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-8">
-            <p class="text-sm text-gray-500">No honeypot logins yet.</p>
+            <p class="text-sm text-gray-500">No honeypot attempts yet.</p>
         </div>
     @else
         <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800 mb-8">
@@ -46,7 +46,13 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <p class="text-sm font-mono text-amber-400">{{ $entry['ip'] }}</p>
                         <span class="text-gray-600">·</span>
-                        <p class="text-sm font-mono text-green-400">{{ $entry['user'] }}</p>
+                        <p class="text-sm font-mono text-gray-300">{{ $entry['user'] }}</p>
+                        <span class="text-gray-700">/</span>
+                        <p class="text-sm font-mono text-gray-500">{{ $entry['password'] }}</p>
+
+                        @if($entry['is_success'])
+                            <span class="text-xs px-1.5 py-0.5 rounded bg-green-900/30 text-green-400 font-mono">success</span>
+                        @endif
 
                         @if($entry['country_code'])
                             <img src="https://flagcdn.com/16x12/{{ $entry['country_code'] }}.png"

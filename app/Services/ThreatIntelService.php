@@ -400,19 +400,20 @@ class ThreatIntelService
     public function getRecentHoneypotLogins(int $limit = 20): array
     {
         return CowrieLogin::with(['session.ip'])
-            ->where('is_success', true)
             ->orderByDesc('timestamp')
             ->limit($limit)
             ->get()
             ->map(fn ($login) => [
                 'time' => $login->timestamp?->format('H:i:s'),
                 'user' => $login->username,
+                'password' => $login->password,
                 'ip' => $login->session?->ip?->ip ?? '—',
                 'country' => $login->session?->ip?->country,
                 'country_code' => $login->session?->ip?->country_code ? strtolower($login->session->ip->country_code) : null,
                 'isp' => $login->session?->ip?->isp,
                 'total_hits' => $login->session?->ip?->total_hits ?? 1,
                 'is_proxy' => (bool) ($login->session?->ip?->is_proxy ?? false),
+                'is_success' => (bool) $login->is_success,
             ])
             ->all();
     }
@@ -436,6 +437,7 @@ class ThreatIntelService
     public function getRecentCowrieSessions(int $limit = 20): array
     {
         return CowrieSession::with(['ip', 'login', 'commands'])
+            ->whereHas('login', fn ($q) => $q->where('is_success', true))
             ->orderByDesc('started_at')
             ->limit($limit)
             ->get()
