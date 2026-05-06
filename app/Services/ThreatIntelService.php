@@ -2,6 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\CowrieCommand;
+use App\Models\CowrieDownload;
+use App\Models\CowrieSession;
+use App\Models\Credential;
 use App\Models\NginxHit;
 use App\Models\SshAttempt;
 use App\Models\ThreatIp;
@@ -365,5 +369,94 @@ class ThreatIntelService
 
         return SshAttempt::where('timestamp', '>=', $since)->count()
             + NginxHit::where('timestamp', '>=', $since)->count();
+    }
+
+    /**
+     * @return array{total_sessions: int, unique_ips: int, total_commands: int, total_downloads: int}
+     */
+    public function getCowrieStats(): array
+    {
+        return [
+            'total_sessions' => CowrieSession::count(),
+            'unique_ips' => CowrieSession::distinct('ip_id')->count('ip_id'),
+            'total_commands' => CowrieCommand::count(),
+            'total_downloads' => CowrieDownload::count(),
+        ];
+    }
+
+    /**
+     * @return array<int, array{session: string, ip: string, country: string|null, country_code: string|null, isp: string|null, username: string|null, password: string|null, duration_seconds: float|null, started_at: string, commands: array<int, string>}>
+     */
+    public function getRecentCowrieSessions(int $limit = 20): array
+    {
+        return CowrieSession::with(['ip', 'login', 'commands'])
+            ->orderByDesc('started_at')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($s) => [
+                'session' => $s->session,
+                'ip' => $s->ip?->ip,
+                'country' => $s->ip?->country,
+                'country_code' => $s->ip?->country_code ? strtolower($s->ip->country_code) : null,
+                'isp' => $s->ip?->isp,
+                'username' => $s->login?->username,
+                'password' => $s->login?->password,
+                'duration_seconds' => $s->duration_seconds,
+                'started_at' => $s->started_at?->toDateTimeString(),
+                'commands' => $s->commands->pluck('input')->all(),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{username: string, password: string, hit_count: int}>
+     */
+    public function getTopCredentials(int $limit = 20): array
+    {
+        return Credential::orderByDesc('hit_count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($c) => [
+                'username' => $c->username,
+                'password' => $c->password,
+                'hit_count' => (int) $c->hit_count,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{input: string, count: int}>
+     */
+    public function getTopCowrieCommands(int $limit = 20): array
+    {
+        return CowrieCommand::select('input', DB::raw('COUNT(*) as count'))
+            ->groupBy('input')
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => [
+                'input' => $row->input,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{url: string, filename: string|null, file_hash: string|null, count: int}>
+     */
+    public function getTopCowrieDownloads(int $limit = 20): array
+    {
+        return CowrieDownload::select('url', 'filename', 'file_hash', DB::raw('COUNT(*) as count'))
+            ->groupBy('url', 'filename', 'file_hash')
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => [
+                'url' => $row->url,
+                'filename' => $row->filename,
+                'file_hash' => $row->file_hash,
+                'count' => (int) $row->count,
+            ])
+            ->all();
     }
 }
