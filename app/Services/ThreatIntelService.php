@@ -88,39 +88,26 @@ class ThreatIntelService
     }
 
     /**
-     * @return array<int, array{time: string, user: string, ip: string, country?: string, country_code?: string, isp?: string, asn?: string, is_proxy?: bool, is_vpn?: bool, is_tor?: bool, total_hits?: int}>
+     * @return array<int, array{time: string, user: string, ip: string, country: string|null, country_code: string|null, isp: string|null, asn: string|null, is_proxy: bool, total_hits: int}>
      */
-    public function getEnrichedFailedLogins(): array
+    public function getRecentSshdAttempts(int $limit = 20): array
     {
-        $raw = app(SecurityService::class)->getFailedLogins();
-
-        if (empty($raw)) {
-            return [];
-        }
-
-        $ips = array_unique(array_column($raw, 'ip'));
-        $enriched = ThreatIp::whereIn('ip', $ips)
+        return SshAttempt::with('ip')
+            ->orderByDesc('timestamp')
+            ->limit($limit)
             ->get()
-            ->keyBy('ip');
-
-        return array_map(function (array $entry) use ($enriched) {
-            $threat = $enriched->get($entry['ip']);
-
-            if (! $threat) {
-                return $entry;
-            }
-
-            return array_merge($entry, [
-                'country' => $threat->country,
-                'country_code' => $threat->country_code ? strtolower($threat->country_code) : null,
-                'isp' => $threat->isp,
-                'asn' => $threat->asn,
-                'is_proxy' => $threat->is_proxy,
-                'is_vpn' => $threat->is_vpn,
-                'is_tor' => $threat->is_tor,
-                'total_hits' => $threat->total_hits,
-            ]);
-        }, $raw);
+            ->map(fn ($attempt) => [
+                'time' => $attempt->timestamp?->format('H:i:s'),
+                'user' => $attempt->username,
+                'ip' => $attempt->ip?->ip ?? '—',
+                'country' => $attempt->ip?->country,
+                'country_code' => $attempt->ip?->country_code ? strtolower($attempt->ip->country_code) : null,
+                'isp' => $attempt->ip?->isp,
+                'asn' => $attempt->ip?->asn,
+                'is_proxy' => (bool) ($attempt->ip?->is_proxy ?? false),
+                'total_hits' => $attempt->ip?->total_hits ?? 1,
+            ])
+            ->all();
     }
 
     /**

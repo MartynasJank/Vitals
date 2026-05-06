@@ -21,7 +21,7 @@ class SshAttempt extends Model
         'timestamp' => 'datetime',
     ];
 
-    public function threatIp(): BelongsTo
+    public function ip(): BelongsTo
     {
         return $this->belongsTo(ThreatIp::class, 'ip_id');
     }
