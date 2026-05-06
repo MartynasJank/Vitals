@@ -77,7 +77,8 @@ class ParseCowrieLogs extends Command
     {
         match ($event['eventid']) {
             'cowrie.session.connect' => $this->handleConnect($event, $threatIntel),
-            'cowrie.login.success' => $this->handleLogin($event),
+            'cowrie.login.success' => $this->handleLogin($event, true),
+            'cowrie.login.failed' => $this->handleLogin($event, false),
             'cowrie.command.input' => $this->handleCommand($event),
             'cowrie.session.file_download' => $this->handleDownload($event),
             'cowrie.session.closed' => $this->handleClose($event),
@@ -100,7 +101,7 @@ class ParseCowrieLogs extends Command
         ]);
     }
 
-    private function handleLogin(array $event): void
+    private function handleLogin(array $event, bool $success): void
     {
         $session = CowrieSession::where('session', $event['session'])->first();
 
@@ -112,14 +113,17 @@ class ParseCowrieLogs extends Command
             'cowrie_session_id' => $session->id,
             'username' => $event['username'],
             'password' => $event['password'],
+            'is_success' => $success,
             'timestamp' => $this->parseTimestamp($event['timestamp']),
         ]);
 
-        Credential::upsert(
-            [['username' => $event['username'], 'password' => $event['password'], 'hit_count' => 1, 'first_seen' => now(), 'last_seen' => now()]],
-            ['username', 'password'],
-            ['hit_count' => \DB::raw('hit_count + 1'), 'last_seen' => now()]
-        );
+        if ($success) {
+            Credential::upsert(
+                [['username' => $event['username'], 'password' => $event['password'], 'hit_count' => 1, 'first_seen' => now(), 'last_seen' => now()]],
+                ['username', 'password'],
+                ['hit_count' => \DB::raw('hit_count + 1'), 'last_seen' => now()]
+            );
+        }
     }
 
     private function handleCommand(array $event): void
