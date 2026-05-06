@@ -386,7 +386,7 @@ class ThreatIntelService
     }
 
     /**
-     * @return array<int, array{time: string, user: string, ip: string, country: string|null, country_code: string|null, isp: string|null, total_hits: int, is_proxy: bool}>
+     * @return array<int, array{time: string, user: string, password: string, ip: string, country: string|null, country_code: string|null, isp: string|null, asn: string|null, total_hits: int, is_proxy: bool, is_success: bool}>
      */
     public function getRecentHoneypotLogins(int $limit = 20): array
     {
@@ -402,6 +402,7 @@ class ThreatIntelService
                 'country' => $login->session?->ip?->country,
                 'country_code' => $login->session?->ip?->country_code ? strtolower($login->session->ip->country_code) : null,
                 'isp' => $login->session?->ip?->isp,
+                'asn' => $login->session?->ip?->asn,
                 'total_hits' => $login->session?->ip?->total_hits ?? 1,
                 'is_proxy' => (bool) ($login->session?->ip?->is_proxy ?? false),
                 'is_success' => (bool) $login->is_success,
