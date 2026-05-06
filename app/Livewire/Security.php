@@ -41,22 +41,13 @@ class Security extends Component
         try {
             $threatIntel = app(ThreatIntelService::class);
 
-            $cowrie = array_map(fn ($e) => array_merge($e, ['source' => 'cowrie', 'asn' => null]), $threatIntel->getRecentHoneypotLogins());
+            $cowrie = array_map(fn ($e) => array_merge($e, ['source' => 'cowrie']), $threatIntel->getRecentHoneypotLogins());
 
-            $sshd = array_map(fn ($e) => [
-                'time' => $e['time'],
-                'user' => $e['user'],
-                'ip' => $e['ip'],
+            $sshd = array_map(fn ($e) => array_merge($e, [
                 'password' => null,
                 'source' => 'sshd',
                 'is_success' => false,
-                'country' => $e['country'] ?? null,
-                'country_code' => $e['country_code'] ?? null,
-                'isp' => $e['isp'] ?? null,
-                'asn' => $e['asn'] ?? null,
-                'is_proxy' => $e['is_proxy'] ?? false,
-                'total_hits' => $e['total_hits'] ?? 1,
-            ], $threatIntel->getEnrichedFailedLogins());
+            ]), $threatIntel->getRecentSshdAttempts());
 
             $merged = array_merge($cowrie, $sshd);
             usort($merged, fn ($a, $b) => strcmp($b['time'], $a['time']));
