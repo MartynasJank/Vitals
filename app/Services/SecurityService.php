@@ -142,10 +142,10 @@ class SecurityService
 
     public function banIp(string $ip, string $jail = 'cowrie-connect'): bool
     {
-        $output = shell_exec(
-            'sudo fail2ban-client set '.escapeshellarg($jail).' banip '.escapeshellarg($ip).' 2>&1'
-        );
+        $cmd = "sudo fail2ban-client set $jail banip $ip 2>&1";
 
-        return str_contains((string) $output, '1');
+        $output = shell_exec($cmd);
+
+        return $output !== null && stripos($output, 'error') === false;
     }
 }
