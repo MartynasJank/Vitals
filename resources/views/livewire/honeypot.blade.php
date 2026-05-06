@@ -61,6 +61,8 @@
 
                             @if($session['username'])
                                 <span class="text-xs px-1.5 py-0.5 rounded bg-green-900/30 text-green-400 font-mono">{{ $session['username'] }}/{{ $session['password'] }}</span>
+                            @else
+                                <span class="text-xs px-1.5 py-0.5 rounded bg-gray-800 text-gray-600 font-mono">scan only</span>
                             @endif
 
                             @if($session['duration_seconds'])

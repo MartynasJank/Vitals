@@ -92,6 +92,44 @@
         </div>
     @endif
 
+    {{-- Recent Bot Scans --}}
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Recent Web Bot Scans</h2>
+
+    @if(empty($recentBotScans))
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-8">
+            <p class="text-sm text-gray-500">No recent bot scans found.</p>
+        </div>
+    @else
+        <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800 mb-8">
+            @foreach($recentBotScans as $scan)
+                <div class="px-4 sm:px-5 py-3">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <p class="text-sm font-mono text-blue-400">{{ $scan['ip'] }}</p>
+                        <span class="text-gray-600">·</span>
+                        <span class="text-xs font-mono text-gray-500">{{ $scan['method'] }}</span>
+                        <span class="text-xs font-mono text-gray-300 truncate max-w-xs">{{ $scan['path'] }}</span>
+                        <span class="text-xs px-1.5 py-0.5 rounded font-mono
+                            {{ $scan['status_code'] >= 500 ? 'bg-red-900/30 text-red-400' : ($scan['status_code'] >= 400 ? 'bg-amber-900/30 text-amber-500' : 'bg-gray-800 text-gray-500') }}">
+                            {{ $scan['status_code'] }}
+                        </span>
+                        @if($scan['scan_type'] !== 'other')
+                            <span class="text-xs px-1.5 py-0.5 rounded bg-purple-900/30 text-purple-400 font-mono">{{ $scan['scan_type'] }}</span>
+                        @endif
+                        @if($scan['country_code'])
+                            <img src="https://flagcdn.com/16x12/{{ $scan['country_code'] }}.png"
+                                 alt="{{ $scan['country'] ?? '' }}"
+                                 class="w-4 h-3 object-cover rounded-sm opacity-80">
+                        @endif
+                        @if($scan['country'])
+                            <span class="text-xs text-gray-500">{{ $scan['country'] }}</span>
+                        @endif
+                    </div>
+                    <p class="text-xs font-mono text-gray-600 mt-0.5">{{ $scan['time'] }}</p>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
     {{-- Firewall Rules --}}
     <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Firewall Rules (iptables INPUT)</h2>
 

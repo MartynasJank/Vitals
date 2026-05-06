@@ -19,6 +19,9 @@ class Security extends Component
     /** @var array<int, array{time: string, user: string, ip: string}> */
     public array $successfulLogins = [];
 
+    /** @var array<int, array{time: string, ip: string, country: string|null, country_code: string|null, method: string, path: string, status_code: int, scan_type: string}> */
+    public array $recentBotScans = [];
+
     /** @var array<int, string> */
     public array $firewallRules = [];
 
@@ -58,6 +61,12 @@ class Security extends Component
                 'country' => null, 'country_code' => null, 'isp' => null,
                 'asn' => null, 'is_proxy' => false, 'total_hits' => 1,
             ]), $service->getFailedLogins());
+        }
+
+        try {
+            $this->recentBotScans = app(ThreatIntelService::class)->getRecentNginxHits();
+        } catch (\Exception) {
+            $this->recentBotScans = [];
         }
     }
 

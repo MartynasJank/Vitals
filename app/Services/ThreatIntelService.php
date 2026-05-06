@@ -385,6 +385,37 @@ class ThreatIntelService
             + NginxHit::where('timestamp', '>=', $since)->count();
     }
 
+    public function getTotalAttacksLastHour(): int
+    {
+        $since = now()->subHour();
+
+        return SshAttempt::where('timestamp', '>=', $since)->count()
+            + CowrieLogin::where('timestamp', '>=', $since)->count()
+            + NginxHit::where('timestamp', '>=', $since)->count();
+    }
+
+    /**
+     * @return array<int, array{time: string, ip: string, country: string|null, country_code: string|null, method: string, path: string, status_code: int, scan_type: string}>
+     */
+    public function getRecentNginxHits(int $limit = 20): array
+    {
+        return NginxHit::with('ip')
+            ->orderByDesc('timestamp')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($hit) => [
+                'time' => $hit->timestamp?->format('H:i:s'),
+                'ip' => $hit->ip?->ip ?? '—',
+                'country' => $hit->ip?->country,
+                'country_code' => $hit->ip?->country_code ? strtolower($hit->ip->country_code) : null,
+                'method' => $hit->method,
+                'path' => $hit->path,
+                'status_code' => $hit->status_code,
+                'scan_type' => $hit->scan_type,
+            ])
+            ->all();
+    }
+
     /**
      * @return array<int, array{time: string, user: string, password: string, ip: string, country: string|null, country_code: string|null, isp: string|null, asn: string|null, total_hits: int, is_proxy: bool, is_success: bool}>
      */
@@ -429,7 +460,6 @@ class ThreatIntelService
     public function getRecentCowrieSessions(int $limit = 20): array
     {
         return CowrieSession::with(['ip', 'login', 'commands'])
-            ->whereHas('login', fn ($q) => $q->where('is_success', true))
             ->orderByDesc('started_at')
             ->limit($limit)
             ->get()

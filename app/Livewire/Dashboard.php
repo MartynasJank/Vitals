@@ -46,6 +46,8 @@ class Dashboard extends Component
 
     public int $attacksLast24h = 0;
 
+    public int $attacksLastHour = 0;
+
     #[Poll('5s')]
     public function refresh(): void
     {
@@ -87,9 +89,12 @@ class Dashboard extends Component
         $this->alerts = $this->computeAlerts();
 
         try {
-            $this->attacksLast24h = app(ThreatIntelService::class)->getTotalAttacksLast24h();
+            $threatIntel = app(ThreatIntelService::class);
+            $this->attacksLast24h = $threatIntel->getTotalAttacksLast24h();
+            $this->attacksLastHour = $threatIntel->getTotalAttacksLastHour();
         } catch (\Exception) {
             $this->attacksLast24h = 0;
+            $this->attacksLastHour = 0;
         }
     }
 
