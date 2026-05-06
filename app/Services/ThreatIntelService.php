@@ -218,16 +218,25 @@ class ThreatIntelService
      */
     public function getTopSshUsernames(int $limit = 20): array
     {
-        return SshAttempt::select('username', DB::raw('COUNT(*) as count'))
+        $ssh = SshAttempt::select('username', DB::raw('COUNT(*) as count'))
             ->whereNotNull('username')
             ->groupBy('username')
-            ->orderByDesc('count')
-            ->limit($limit)
-            ->get()
-            ->map(fn ($row) => [
-                'username' => $row->username,
-                'count' => (int) $row->count,
+            ->pluck('count', 'username');
+
+        $cowrie = CowrieLogin::select('username', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('username')
+            ->groupBy('username')
+            ->pluck('count', 'username');
+
+        return $ssh->mergeRecursive($cowrie)
+            ->map(fn ($v) => is_array($v) ? array_sum($v) : (int) $v)
+            ->sortDesc()
+            ->take($limit)
+            ->map(fn ($count, $username) => [
+                'username' => $username,
+                'count' => (int) $count,
             ])
+            ->values()
             ->all();
     }
 
@@ -287,15 +296,17 @@ class ThreatIntelService
     public function getCrossSourceIps(): array
     {
         $sshIpIds = SshAttempt::select('ip_id')->distinct()->pluck('ip_id');
+        $cowrieIpIds = CowrieSession::select('ip_id')->distinct()->pluck('ip_id');
+        $allSshIpIds = $sshIpIds->merge($cowrieIpIds)->unique()->values();
         $nginxIpIds = NginxHit::select('ip_id')->distinct()->pluck('ip_id');
-        $crossIds = $sshIpIds->intersect($nginxIpIds)->values();
+        $crossIds = $allSshIpIds->intersect($nginxIpIds)->values();
 
         if ($crossIds->isEmpty()) {
             return [];
         }
 
         return ThreatIp::whereIn('id', $crossIds)
-            ->withCount(['sshAttempts', 'nginxHits'])
+            ->withCount(['sshAttempts', 'nginxHits', 'cowrieSessions'])
             ->orderByDesc('total_hits')
             ->limit(20)
             ->get()
@@ -304,7 +315,7 @@ class ThreatIntelService
                 'country' => $ip->country,
                 'country_code' => $ip->country_code ? strtolower($ip->country_code) : null,
                 'isp' => $ip->isp,
-                'ssh_count' => $ip->ssh_attempts_count,
+                'ssh_count' => $ip->ssh_attempts_count + $ip->cowrie_sessions_count,
                 'nginx_count' => $ip->nginx_hits_count,
                 'total_hits' => $ip->total_hits,
             ])
