@@ -75,7 +75,7 @@
         @if(empty($attackOrigins))
             <p class="text-sm text-gray-600 font-mono">No geo data yet — IPs will be plotted as they are enriched</p>
         @else
-            <div id="originsMap" class="h-52 rounded-lg" wire:ignore></div>
+            <div id="originsMap" class="h-96 rounded-lg" wire:ignore></div>
         @endif
     </div>
 
@@ -346,7 +346,7 @@
 
     if (originsMapEl) {
         attackMap = L.map(originsMapEl, { zoomControl: false, attributionControl: false, scrollWheelZoom: false }).setView([20, 0], 2);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(attackMap);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(attackMap);
         markersLayer = L.layerGroup().addTo(attackMap);
         plotOrigins(d.origins);
     }
