@@ -30,9 +30,6 @@ class ParseSshLogs extends Command
             return;
         }
 
-        // Use the latest stored timestamp as the cursor instead of a file offset.
-        // This means re-runs, log rotations, and format changes are all safe —
-        // we always pick up from where the DB says we left off.
         $since = $this->option('fresh')
             ? '1970-01-01 00:00:00'
             : (SshAttempt::max('timestamp') ?? '1970-01-01 00:00:00');
@@ -56,7 +53,7 @@ class ParseSshLogs extends Command
                 $ipId = $threatIntel->upsertIpWithEnrichment($attempt['ip']);
 
                 SshAttempt::create([
-                    'ip_id' => $attempt['ip'],
+                    'ip_id' => $ipId,
                     'username' => $attempt['username'],
                     'timestamp' => $attempt['timestamp'],
                 ]);
