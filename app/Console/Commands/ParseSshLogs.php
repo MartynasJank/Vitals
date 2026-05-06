@@ -8,68 +8,68 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
-#[Signature('vitals:parse-ssh-logs {--log=/var/log/auth.log}')]
+#[Signature('vitals:parse-ssh-logs {--log=/var/log/auth.log} {--fresh}')]
 #[Description('Parse auth.log for failed SSH login attempts and store in threat intel database')]
 class ParseSshLogs extends Command
 {
-    private const STATE_FILE = 'ssh_parse_state.txt';
-
     public function handle(ThreatIntelService $threatIntel): void
     {
         $logFile = $this->option('log');
-        $stateFile = storage_path('app/'.self::STATE_FILE);
 
-        if (! file_exists($logFile)) {
+        if (!file_exists($logFile)) {
             $this->warn("Log file not found: {$logFile}");
 
             return;
         }
 
-        $offset = file_exists($stateFile) ? (int) file_get_contents($stateFile) : 0;
-        $fileSize = filesize($logFile);
-
-        if ($offset > $fileSize) {
-            $offset = 0;
-        }
-
         $handle = fopen($logFile, 'r');
 
-        if (! $handle) {
+        if (!$handle) {
             $this->error("Cannot open log file: {$logFile}");
 
             return;
         }
 
-        fseek($handle, $offset);
+        // Use the latest stored timestamp as the cursor instead of a file offset.
+        // This means re-runs, log rotations, and format changes are all safe —
+        // we always pick up from where the DB says we left off.
+        $since = $this->option('fresh')
+            ? '1970-01-01 00:00:00'
+            : (SshAttempt::max('timestamp') ?? '1970-01-01 00:00:00');
 
         $processed = 0;
+        $skipped = 0;
 
         while (($line = fgets($handle)) !== false) {
             $attempt = $this->parseLine(trim($line));
 
-            if ($attempt) {
-                try {
-                    $ipId = $threatIntel->upsertIpWithEnrichment($attempt['ip']);
+            if (!$attempt) {
+                continue;
+            }
 
-                    SshAttempt::create([
-                        'ip_id' => $ipId,
-                        'username' => $attempt['username'],
-                        'timestamp' => $attempt['timestamp'],
-                    ]);
+            if ($attempt['timestamp'] <= $since) {
+                $skipped++;
+                continue;
+            }
 
-                    $processed++;
-                } catch (\Exception $e) {
-                    $this->warn("Failed to process attempt: {$e->getMessage()}");
-                }
+            try {
+                $ipId = $threatIntel->upsertIpWithEnrichment($attempt['ip']);
+
+                SshAttempt::create([
+                    'ip_id' => $attempt['ip'],
+                    'username' => $attempt['username'],
+                    'timestamp' => $attempt['timestamp'],
+                ]);
+
+                $processed++;
+            } catch (\Exception $e) {
+                $this->warn("Failed to process attempt from {$attempt['ip']}: {$e->getMessage()}");
             }
         }
 
-        $newOffset = ftell($handle);
         fclose($handle);
 
-        file_put_contents($stateFile, (string) $newOffset);
-
-        $this->info("Processed {$processed} SSH attempts. Offset: {$newOffset}.");
+        $this->info("Processed {$processed} new SSH attempts. Skipped {$skipped} already seen.");
     }
 
     /**
@@ -77,33 +77,42 @@ class ParseSshLogs extends Command
      */
     private function parseLine(string $line): ?array
     {
-        if (! str_contains($line, 'Failed password')) {
+        if (!str_contains($line, 'Failed password')) {
             return null;
         }
 
-        preg_match(
-            '/^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+.*Failed password for (?:invalid user )?(\S+) from ([\d.a-fA-F:]+)/',
+        // ISO 8601 format: 2026-05-06T07:56:11.416038+00:00 (Ubuntu 24.04+, modern rsyslog)
+        if (preg_match(
+            '/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\.\d+([+-]\d{2}:\d{2}|Z)\s+\S+\s+sshd\[\d+\]:\sFailed password for (?:invalid user )?(\S+) from ([\d.a-fA-F:]+)/',
             $line,
             $m
-        );
-
-        if (! isset($m[1], $m[2], $m[3])) {
-            return null;
+        )) {
+            return [
+                'ip' => $m[4],
+                'username' => $m[3],
+                'timestamp' => date('Y-m-d H:i:s', strtotime($m[1])),
+            ];
         }
 
-        $ts = strtotime(date('Y').' '.$m[1]);
+        // Legacy syslog format: May  6 07:56:11 (older Ubuntu / Debian)
+        if (preg_match(
+            '/^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+\S+\s+sshd\[\d+\]:\sFailed password for (?:invalid user )?(\S+) from ([\d.a-fA-F:]+)/',
+            $line,
+            $m
+        )) {
+            $ts = strtotime(date('Y') . ' ' . $m[1]);
 
-        // If the parsed date is in the future the log entry is from last year (e.g. Dec log parsed in Jan)
-        if ($ts > time() + 86400) {
-            $ts = strtotime((date('Y') - 1).' '.$m[1]);
+            if ($ts > time() + 86400) {
+                $ts = strtotime((date('Y') - 1) . ' ' . $m[1]);
+            }
+
+            return [
+                'ip' => $m[3],
+                'username' => $m[2],
+                'timestamp' => $ts ? date('Y-m-d H:i:s', $ts) : now()->toDateTimeString(),
+            ];
         }
 
-        $timestamp = $ts ? date('Y-m-d H:i:s', $ts) : now()->toDateTimeString();
-
-        return [
-            'ip' => $m[3],
-            'username' => $m[2],
-            'timestamp' => $timestamp,
-        ];
+        return null;
     }
 }
