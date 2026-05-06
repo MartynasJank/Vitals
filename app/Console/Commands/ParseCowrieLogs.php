@@ -168,6 +168,6 @@ class ParseCowrieLogs extends Command
 
     private function parseTimestamp(string $timestamp): string
     {
-        return date('Y-m-d H:i:s', strtotime($timestamp));
+        return gmdate('Y-m-d H:i:s', strtotime($timestamp));
     }
 }
