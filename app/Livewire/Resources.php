@@ -37,6 +37,8 @@ class Resources extends Component
 
     public string $range = '1h';
 
+    public string $processSort = 'cpu';
+
     public function mount(): void
     {
         $this->loadStats();
@@ -55,12 +57,18 @@ class Resources extends Component
         $this->disk = $server->getDiskStats();
         $this->network = $server->getNetworkStats();
         $this->diskPartitions = $server->getAllDiskPartitions();
-        $this->processes = $server->getTopProcesses();
+        $this->processes = $server->getTopProcesses($this->processSort);
     }
 
     public function setRange(string $range): void
     {
         $this->range = $range;
+    }
+
+    public function setProcessSort(string $sort): void
+    {
+        $this->processSort = $sort;
+        $this->loadStats();
     }
 
     public function render(): View

@@ -147,14 +147,26 @@
     </div>
 
     {{-- Top Processes --}}
-    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Top Processes</h2>
+    <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Top Processes</h2>
+        <div class="flex gap-1">
+            <button wire:click="setProcessSort('cpu')"
+                    class="px-3 py-1 text-xs font-mono rounded transition-colors {{ $processSort === 'cpu' ? 'bg-gray-700 text-gray-100' : 'text-gray-500 hover:text-gray-300' }}">
+                CPU
+            </button>
+            <button wire:click="setProcessSort('memory')"
+                    class="px-3 py-1 text-xs font-mono rounded transition-colors {{ $processSort === 'memory' ? 'bg-gray-700 text-gray-100' : 'text-gray-500 hover:text-gray-300' }}">
+                MEM
+            </button>
+        </div>
+    </div>
     <div class="overflow-x-auto">
     <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden min-w-[560px]">
         <div class="px-5 py-2.5 grid grid-cols-12 gap-4 border-b border-gray-800">
             <p class="text-xs text-gray-600 uppercase tracking-wider col-span-1">PID</p>
             <p class="text-xs text-gray-600 uppercase tracking-wider col-span-2">User</p>
-            <p class="text-xs text-gray-600 uppercase tracking-wider col-span-1 text-right">CPU%</p>
-            <p class="text-xs text-gray-600 uppercase tracking-wider col-span-1 text-right">MEM%</p>
+            <p class="text-xs {{ $processSort === 'cpu' ? 'text-gray-300' : 'text-gray-600' }} uppercase tracking-wider col-span-1 text-right">CPU%</p>
+            <p class="text-xs {{ $processSort === 'memory' ? 'text-gray-300' : 'text-gray-600' }} uppercase tracking-wider col-span-1 text-right">MEM%</p>
             <p class="text-xs text-gray-600 uppercase tracking-wider col-span-7">Command</p>
         </div>
         @foreach($processes as $proc)
