@@ -13,11 +13,8 @@ class Security extends Component
     /** @var array<int, array{ip: string, jail: string}> */
     public array $bannedIps = [];
 
-    /** @var array<int, array{time: string, user: string, ip: string, country?: string, country_code?: string, isp?: string, asn?: string, is_proxy?: bool, is_vpn?: bool, is_tor?: bool, total_hits?: int}> */
-    public array $failedLogins = [];
-
-    /** @var array<int, array{time: string, user: string, password: string, ip: string, country: string|null, country_code: string|null, isp: string|null, total_hits: int, is_proxy: bool, is_success: bool}> */
-    public array $honeypotLogins = [];
+    /** @var array<int, array{time: string, user: string, ip: string, password: string|null, source: string, is_success: bool, country: string|null, country_code: string|null, isp: string|null, asn: string|null, is_proxy: bool, total_hits: int}> */
+    public array $sshAttempts = [];
 
     /** @var array<int, array{time: string, user: string, ip: string}> */
     public array $successfulLogins = [];
@@ -43,11 +40,33 @@ class Security extends Component
 
         try {
             $threatIntel = app(ThreatIntelService::class);
-            $this->failedLogins = $threatIntel->getEnrichedFailedLogins();
-            $this->honeypotLogins = $threatIntel->getRecentHoneypotLogins();
+
+            $cowrie = array_map(fn ($e) => array_merge($e, ['source' => 'cowrie', 'asn' => null]), $threatIntel->getRecentHoneypotLogins());
+
+            $sshd = array_map(fn ($e) => [
+                'time' => $e['time'],
+                'user' => $e['user'],
+                'ip' => $e['ip'],
+                'password' => null,
+                'source' => 'sshd',
+                'is_success' => false,
+                'country' => $e['country'] ?? null,
+                'country_code' => $e['country_code'] ?? null,
+                'isp' => $e['isp'] ?? null,
+                'asn' => $e['asn'] ?? null,
+                'is_proxy' => $e['is_proxy'] ?? false,
+                'total_hits' => $e['total_hits'] ?? 1,
+            ], $threatIntel->getEnrichedFailedLogins());
+
+            $merged = array_merge($cowrie, $sshd);
+            usort($merged, fn ($a, $b) => strcmp($b['time'], $a['time']));
+            $this->sshAttempts = array_slice($merged, 0, 40);
         } catch (\Exception) {
-            $this->failedLogins = $service->getFailedLogins();
-            $this->honeypotLogins = [];
+            $this->sshAttempts = array_map(fn ($e) => array_merge($e, [
+                'password' => null, 'source' => 'sshd', 'is_success' => false,
+                'country' => null, 'country_code' => null, 'isp' => null,
+                'asn' => null, 'is_proxy' => false, 'total_hits' => 1,
+            ]), $service->getFailedLogins());
         }
     }
 
