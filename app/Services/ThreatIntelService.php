@@ -403,7 +403,7 @@ class ThreatIntelService
                 'password' => $s->login?->password,
                 'duration_seconds' => $s->duration_seconds,
                 'started_at' => $s->started_at?->toDateTimeString(),
-                'commands' => $s->commands->pluck('input')->all(),
+                'commands' => $s->commands->pluck('input')->filter(fn ($c) => $c !== '')->values()->all(),
             ])
             ->all();
     }
@@ -430,6 +430,7 @@ class ThreatIntelService
     public function getTopCowrieCommands(int $limit = 20): array
     {
         return CowrieCommand::select('input', DB::raw('COUNT(*) as count'))
+            ->where('input', '!=', '')
             ->groupBy('input')
             ->orderByDesc('count')
             ->limit($limit)
