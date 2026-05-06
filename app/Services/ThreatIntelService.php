@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CowrieCommand;
 use App\Models\CowrieDownload;
+use App\Models\CowrieLogin;
 use App\Models\CowrieSession;
 use App\Models\Credential;
 use App\Models\NginxHit;
@@ -138,16 +139,21 @@ class ThreatIntelService
             ->groupBy('label')
             ->pluck('count', 'label');
 
+        $cowrie = CowrieSession::select(DB::raw("DATE_FORMAT(started_at, '{$groupFormat}') as label, COUNT(*) as count"))
+            ->where('started_at', '>=', $since)
+            ->groupBy('label')
+            ->pluck('count', 'label');
+
         $nginx = NginxHit::select(DB::raw("DATE_FORMAT(timestamp, '{$groupFormat}') as label, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
             ->groupBy('label')
             ->pluck('count', 'label');
 
-        $labels = $ssh->keys()->merge($nginx->keys())->unique()->sort()->values();
+        $labels = $ssh->keys()->merge($cowrie->keys())->merge($nginx->keys())->unique()->sort()->values();
 
         return $labels->map(fn ($label) => [
             'label' => $label,
-            'ssh' => (int) ($ssh[$label] ?? 0),
+            'ssh' => (int) ($ssh[$label] ?? 0) + (int) ($cowrie[$label] ?? 0),
             'nginx' => (int) ($nginx[$label] ?? 0),
         ])->values()->all();
     }
@@ -323,6 +329,11 @@ class ThreatIntelService
             ->groupBy('hour')
             ->pluck('count', 'hour');
 
+        $cowrie = CowrieSession::select(DB::raw('HOUR(started_at) as hour, COUNT(*) as count'))
+            ->where('started_at', '>=', $since)
+            ->groupBy('hour')
+            ->pluck('count', 'hour');
+
         $nginx = NginxHit::select(DB::raw('HOUR(timestamp) as hour, COUNT(*) as count'))
             ->where('timestamp', '>=', $since)
             ->groupBy('hour')
@@ -331,7 +342,7 @@ class ThreatIntelService
         $heatmap = array_fill(0, 24, 0);
 
         for ($h = 0; $h < 24; $h++) {
-            $heatmap[$h] = (int) ($ssh[$h] ?? 0) + (int) ($nginx[$h] ?? 0);
+            $heatmap[$h] = (int) ($ssh[$h] ?? 0) + (int) ($cowrie[$h] ?? 0) + (int) ($nginx[$h] ?? 0);
         }
 
         return $heatmap;
@@ -368,7 +379,30 @@ class ThreatIntelService
         $since = now()->subHours(24);
 
         return SshAttempt::where('timestamp', '>=', $since)->count()
+            + CowrieSession::where('started_at', '>=', $since)->count()
             + NginxHit::where('timestamp', '>=', $since)->count();
+    }
+
+    /**
+     * @return array<int, array{time: string, user: string, ip: string, country: string|null, country_code: string|null, isp: string|null, total_hits: int, is_proxy: bool}>
+     */
+    public function getRecentHoneypotLogins(int $limit = 20): array
+    {
+        return CowrieLogin::with(['session.ip'])
+            ->orderByDesc('timestamp')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($login) => [
+                'time' => $login->timestamp?->format('H:i:s'),
+                'user' => $login->username,
+                'ip' => $login->session?->ip?->ip ?? '—',
+                'country' => $login->session?->ip?->country,
+                'country_code' => $login->session?->ip?->country_code ? strtolower($login->session->ip->country_code) : null,
+                'isp' => $login->session?->ip?->isp,
+                'total_hits' => $login->session?->ip?->total_hits ?? 1,
+                'is_proxy' => (bool) ($login->session?->ip?->is_proxy ?? false),
+            ])
+            ->all();
     }
 
     /**

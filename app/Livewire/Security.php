@@ -16,6 +16,9 @@ class Security extends Component
     /** @var array<int, array{time: string, user: string, ip: string, country?: string, country_code?: string, isp?: string, asn?: string, is_proxy?: bool, is_vpn?: bool, is_tor?: bool, total_hits?: int}> */
     public array $failedLogins = [];
 
+    /** @var array<int, array{time: string, user: string, ip: string, country: string|null, country_code: string|null, isp: string|null, total_hits: int, is_proxy: bool}> */
+    public array $honeypotLogins = [];
+
     /** @var array<int, array{time: string, user: string, ip: string}> */
     public array $successfulLogins = [];
 
@@ -39,9 +42,12 @@ class Security extends Component
         $this->firewallRules = $service->getFirewallRules();
 
         try {
-            $this->failedLogins = app(ThreatIntelService::class)->getEnrichedFailedLogins();
+            $threatIntel = app(ThreatIntelService::class);
+            $this->failedLogins = $threatIntel->getEnrichedFailedLogins();
+            $this->honeypotLogins = $threatIntel->getRecentHoneypotLogins();
         } catch (\Exception) {
             $this->failedLogins = $service->getFailedLogins();
+            $this->honeypotLogins = [];
         }
     }
 
