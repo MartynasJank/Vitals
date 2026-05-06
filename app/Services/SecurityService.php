@@ -139,4 +139,13 @@ class SecurityService
 
         return str_contains((string) $output, '1');
     }
+
+    public function banIp(string $ip, string $jail = 'cowrie-connect'): bool
+    {
+        $output = shell_exec(
+            'sudo fail2ban-client set '.escapeshellarg($jail).' banip '.escapeshellarg($ip).' 2>&1'
+        );
+
+        return str_contains((string) $output, '1');
+    }
 }
