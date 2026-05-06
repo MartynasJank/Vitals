@@ -1,4 +1,10 @@
 <div>
+    @if($banMessage)
+        <div class="mb-4 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300">
+            {{ $banMessage }}
+        </div>
+    @endif
+
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-xl font-bold text-gray-100">Honeypot</h1>
         <span class="flex items-center gap-1.5 text-xs font-mono text-green-400">
@@ -40,6 +46,7 @@
             <div class="divide-y divide-gray-800">
                 @foreach($recentSessions as $session)
                     <div x-data="{ open: false }" class="px-5 py-3">
+                        <div class="flex items-start justify-between gap-2">
                         <div class="flex flex-wrap items-center gap-2 cursor-pointer" @click="open = !open">
                             <span class="text-xs font-mono text-gray-600">{{ $session['started_at'] }}</span>
 
@@ -74,10 +81,16 @@
                             @endif
 
                             @if(!empty($session['commands']))
-                                <svg class="w-3 h-3 text-gray-600 ml-auto transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-3 h-3 text-gray-600 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                 </svg>
                             @endif
+                        </div>
+                        <button wire:click="ban('{{ $session['ip'] }}')"
+                                wire:confirm="Ban {{ $session['ip'] }}?"
+                                class="text-xs text-gray-600 hover:text-red-400 transition-colors font-mono flex-shrink-0 mt-0.5">
+                            ban
+                        </button>
                         </div>
 
                         @if(!empty($session['commands']))

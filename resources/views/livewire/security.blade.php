@@ -81,11 +81,18 @@
                             <span class="text-xs px-1.5 py-0.5 rounded bg-red-900/30 text-red-400 font-mono">{{ $entry['total_hits'] }}× seen</span>
                         @endif
                     </div>
-                    <div class="flex items-center gap-3 mt-0.5">
-                        <p class="text-xs font-mono text-gray-500">{{ $entry['time'] }}</p>
-                        @if($entry['asn'])
-                            <span class="text-xs font-mono text-gray-600">{{ $entry['asn'] }}</span>
-                        @endif
+                    <div class="flex items-center justify-between mt-0.5">
+                        <div class="flex items-center gap-3">
+                            <p class="text-xs font-mono text-gray-500">{{ $entry['time'] }}</p>
+                            @if($entry['asn'])
+                                <span class="text-xs font-mono text-gray-600">{{ $entry['asn'] }}</span>
+                            @endif
+                        </div>
+                        <button wire:click="ban('{{ $entry['ip'] }}')"
+                                wire:confirm="Ban {{ $entry['ip'] }}?"
+                                class="text-xs text-gray-600 hover:text-red-400 transition-colors font-mono">
+                            ban
+                        </button>
                     </div>
                 </div>
             @endforeach

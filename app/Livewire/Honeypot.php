@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Services\SecurityService;
 use App\Services\ThreatIntelService;
 use Illuminate\View\View;
 use Livewire\Attributes\Poll;
@@ -41,6 +42,14 @@ class Honeypot extends Component
             $this->topDownloads = $service->getTopCowrieDownloads();
         } catch (\Exception) {
         }
+    }
+
+    public ?string $banMessage = null;
+
+    public function ban(string $ip): void
+    {
+        $success = app(SecurityService::class)->banIp($ip);
+        $this->banMessage = $success ? "Banned {$ip}." : "Failed to ban {$ip}.";
     }
 
     public function render(): View

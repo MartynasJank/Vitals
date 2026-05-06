@@ -77,6 +77,13 @@ class Security extends Component
         $this->loadData();
     }
 
+    public function ban(string $ip): void
+    {
+        $success = app(SecurityService::class)->banIp($ip);
+        $this->unbanMessage = $success ? "Banned {$ip}." : "Failed to ban {$ip}.";
+        $this->loadData();
+    }
+
     public function render(): View
     {
         return view('livewire.security');
