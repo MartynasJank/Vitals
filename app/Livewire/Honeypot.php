@@ -36,7 +36,12 @@ class Honeypot extends Component
         try {
             $service = app(ThreatIntelService::class);
             $this->stats = $service->getCowrieStats();
-            $this->recentSessions = $service->getRecentCowrieSessions(loginsOnly: $this->loginsOnly);
+            $sessions = $service->getRecentCowrieSessions(limit: $this->loginsOnly ? 100 : 20);
+            if ($this->loginsOnly) {
+                $sessions = array_values(array_filter($sessions, fn ($s) => ! empty($s['username'])));
+                $sessions = array_slice($sessions, 0, 20);
+            }
+            $this->recentSessions = $sessions;
             $this->topCredentials = $service->getTopCredentials();
             $this->topCommands = $service->getTopCowrieCommands();
             $this->topDownloads = $service->getTopCowrieDownloads();
