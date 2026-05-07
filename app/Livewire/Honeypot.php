@@ -48,8 +48,9 @@ class Honeypot extends Component
 
     public ?string $banMessage = null;
 
-    public function updatedLoginsOnly(): void
+    public function toggleLoginsOnly(): void
     {
+        $this->loginsOnly = ! $this->loginsOnly;
         $this->loadData();
     }
 

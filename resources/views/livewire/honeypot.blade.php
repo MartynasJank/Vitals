@@ -37,7 +37,7 @@
     <div class="bg-gray-900 border border-gray-800 rounded-lg mb-4">
         <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Recent Attacker Sessions</p>
-            <button wire:click="$toggle('loginsOnly')"
+            <button wire:click="toggleLoginsOnly"
                     class="text-xs font-mono px-2.5 py-1 rounded transition-colors {{ $loginsOnly ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-800 text-gray-500 border border-gray-700 hover:text-gray-300' }}">
                 successful only
             </button>
