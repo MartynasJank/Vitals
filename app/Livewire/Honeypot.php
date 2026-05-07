@@ -36,7 +36,7 @@ class Honeypot extends Component
         try {
             $service = app(ThreatIntelService::class);
             $this->stats = $service->getCowrieStats();
-            $this->recentSessions = $service->getRecentCowrieSessions();
+            $this->recentSessions = $service->getRecentCowrieSessions(loginsOnly: $this->loginsOnly);
             $this->topCredentials = $service->getTopCredentials();
             $this->topCommands = $service->getTopCowrieCommands();
             $this->topDownloads = $service->getTopCowrieDownloads();
@@ -47,6 +47,11 @@ class Honeypot extends Component
     public bool $loginsOnly = false;
 
     public ?string $banMessage = null;
+
+    public function updatedLoginsOnly(): void
+    {
+        $this->loadData();
+    }
 
     public function ban(string $ip): void
     {

@@ -512,10 +512,11 @@ class ThreatIntelService
     /**
      * @return array<int, array{session: string, ip: string, country: string|null, country_code: string|null, isp: string|null, username: string|null, password: string|null, duration_seconds: float|null, started_at: string, commands: array<int, string>}>
      */
-    public function getRecentCowrieSessions(int $limit = 20): array
+    public function getRecentCowrieSessions(int $limit = 20, bool $loginsOnly = false): array
     {
         return CowrieSession::with(['ip', 'login', 'commands'])
             ->whereNotIn('ip_id', $this->ignoredIpIds())
+            ->when($loginsOnly, fn ($q) => $q->whereHas('login', fn ($q) => $q->whereNotNull('username')->where('username', '!=', '')))
             ->orderByDesc('started_at')
             ->limit($limit)
             ->get()
