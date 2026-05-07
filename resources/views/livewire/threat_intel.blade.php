@@ -79,7 +79,7 @@
                 <p class="text-sm text-gray-600 font-mono">No geo data yet — IPs will be plotted as they are enriched</p>
             </div>
         @else
-            <div id="originsMap" class="h-[500px]" wire:ignore></div>
+            <div id="originsMap" class="h-[300px] sm:h-[500px]" wire:ignore></div>
         @endif
     </div>
 
