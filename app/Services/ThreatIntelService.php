@@ -9,6 +9,7 @@ use App\Models\CowrieSession;
 use App\Models\NginxHit;
 use App\Models\SshAttempt;
 use App\Models\ThreatIp;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
@@ -16,6 +17,12 @@ class ThreatIntelService
 {
     /** @var array<int, int>|null */
     private ?array $cachedIgnoredIpIds = null;
+
+    private function localTime(Carbon $dt): Carbon
+    {
+        return Carbon::createFromFormat('Y-m-d H:i:s', $dt->format('Y-m-d H:i:s'), 'UTC')
+            ->setTimezone(config('app.timezone'));
+    }
 
     /** @return array<int, string> */
     private function ignoredIps(): array
@@ -122,7 +129,7 @@ class ThreatIntelService
             ->limit($limit)
             ->get()
             ->map(fn ($attempt) => [
-                'time' => $attempt->timestamp?->setTimezone(config('app.timezone'))->format('H:i:s'),
+                'time' => $attempt->timestamp ? $this->localTime($attempt->timestamp)->format('H:i:s') : null,
                 'user' => $attempt->username,
                 'ip' => $attempt->ip?->ip ?? '—',
                 'country' => $attempt->ip?->country,
@@ -455,7 +462,7 @@ class ThreatIntelService
             ->limit($limit)
             ->get()
             ->map(fn ($hit) => [
-                'time' => $hit->timestamp?->setTimezone(config('app.timezone'))->format('H:i:s'),
+                'time' => $hit->timestamp ? $this->localTime($hit->timestamp)->format('H:i:s') : null,
                 'ip' => $hit->ip?->ip ?? '—',
                 'country' => $hit->ip?->country,
                 'country_code' => $hit->ip?->country_code ? strtolower($hit->ip->country_code) : null,
@@ -478,7 +485,7 @@ class ThreatIntelService
             ->limit($limit)
             ->get()
             ->map(fn ($login) => [
-                'time' => $login->timestamp?->setTimezone(config('app.timezone'))->format('H:i:s'),
+                'time' => $login->timestamp ? $this->localTime($login->timestamp)->format('H:i:s') : null,
                 'user' => $login->username,
                 'password' => $login->password,
                 'ip' => $login->session?->ip?->ip ?? '—',
@@ -527,7 +534,7 @@ class ThreatIntelService
                 'username' => $s->login?->username,
                 'password' => $s->login?->password,
                 'duration_seconds' => $s->duration_seconds,
-                'started_at' => $s->started_at?->setTimezone(config('app.timezone'))->toDateTimeString(),
+                'started_at' => $s->started_at ? $this->localTime($s->started_at)->toDateTimeString() : null,
                 'commands' => $s->commands->pluck('input')->filter(fn ($c) => $c !== '')->values()->all(),
             ])
             ->all();
