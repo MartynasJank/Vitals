@@ -44,7 +44,7 @@ class Honeypot extends Component
         }
     }
 
-    public bool $scanOnly = false;
+    public bool $loginsOnly = false;
 
     public ?string $banMessage = null;
 
