@@ -516,7 +516,7 @@ class ThreatIntelService
     {
         return CowrieSession::with(['ip', 'login', 'commands'])
             ->whereNotIn('ip_id', $this->ignoredIpIds())
-            ->when($loginsOnly, fn ($q) => $q->whereHas('login', fn ($q) => $q->whereNotNull('username')->where('username', '!=', '')))
+            ->when($loginsOnly, fn ($q) => $q->whereHas('login', fn ($q) => $q->where('is_success', true)))
             ->orderByDesc('started_at')
             ->limit($limit)
             ->get()

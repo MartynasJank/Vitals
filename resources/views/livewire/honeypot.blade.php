@@ -39,12 +39,12 @@
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Recent Attacker Sessions</p>
             <button wire:click="$toggle('loginsOnly')"
                     class="text-xs font-mono px-2.5 py-1 rounded transition-colors {{ $loginsOnly ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-800 text-gray-500 border border-gray-700 hover:text-gray-300' }}">
-                logins only
+                successful only
             </button>
         </div>
         @if(empty($recentSessions))
             <div class="p-5">
-                <p class="text-sm text-gray-600 font-mono">{{ $loginsOnly ? 'No login attempts found' : 'No sessions yet — attackers will appear here once they connect' }}</p>
+                <p class="text-sm text-gray-600 font-mono">{{ $loginsOnly ? 'No successful logins found' : 'No sessions yet — attackers will appear here once they connect' }}</p>
             </div>
         @else
             <div class="divide-y divide-gray-800">
