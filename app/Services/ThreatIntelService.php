@@ -148,9 +148,9 @@ class ThreatIntelService
     public function getAttackVolumeOverTime(string $range): array
     {
         [$since, $groupFormat, $labelFormat] = match ($range) {
-            '7d' => [now()->subDays(7), '%Y-%m-%d', 'Y-m-d'],
-            '30d' => [now()->subDays(30), '%Y-%m-%d', 'Y-m-d'],
-            default => [now()->subHours(24), '%Y-%m-%d %H:00', 'Y-m-d H:00'],
+            '7d' => [now('UTC')->subDays(7), '%Y-%m-%d', 'Y-m-d'],
+            '30d' => [now('UTC')->subDays(30), '%Y-%m-%d', 'Y-m-d'],
+            default => [now('UTC')->subHours(24), '%Y-%m-%d %H:00', 'Y-m-d H:00'],
         };
 
         $tz = now()->format('P');
@@ -368,9 +368,9 @@ class ThreatIntelService
     public function getAttackHeatmap(string $range): array
     {
         $since = match ($range) {
-            '7d' => now()->subDays(7),
-            '30d' => now()->subDays(30),
-            default => now()->subHours(24),
+            '7d' => now('UTC')->subDays(7),
+            '30d' => now('UTC')->subDays(30),
+            default => now('UTC')->subHours(24),
         };
 
         $tz = now()->format('P');
@@ -433,7 +433,7 @@ class ThreatIntelService
 
     public function getTotalAttacksLast24h(): int
     {
-        $since = now()->subHours(24);
+        $since = now('UTC')->subHours(24);
         $ignoredIpIds = $this->ignoredIpIds();
 
         return SshAttempt::where('timestamp', '>=', $since)->whereNotIn('ip_id', $ignoredIpIds)->count()
@@ -443,7 +443,7 @@ class ThreatIntelService
 
     public function getTotalAttacksLastHour(): int
     {
-        $since = now()->subHour();
+        $since = now('UTC')->subHour();
         $ignoredIpIds = $this->ignoredIpIds();
 
         return SshAttempt::where('timestamp', '>=', $since)->whereNotIn('ip_id', $ignoredIpIds)->count()
