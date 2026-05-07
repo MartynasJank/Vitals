@@ -44,6 +44,8 @@ class Honeypot extends Component
         }
     }
 
+    public bool $scanOnly = false;
+
     public ?string $banMessage = null;
 
     public function ban(string $ip): void

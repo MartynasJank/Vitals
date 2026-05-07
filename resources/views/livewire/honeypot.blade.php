@@ -35,16 +35,21 @@
 
     {{-- Recent sessions --}}
     <div class="bg-gray-900 border border-gray-800 rounded-lg mb-4">
-        <div class="px-5 py-4 border-b border-gray-800">
+        <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Recent Attacker Sessions</p>
+            <button wire:click="$toggle('scanOnly')"
+                    class="text-xs font-mono px-2.5 py-1 rounded transition-colors {{ $scanOnly ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-gray-800 text-gray-500 border border-gray-700 hover:text-gray-300' }}">
+                scan only
+            </button>
         </div>
-        @if(empty($recentSessions))
+        @php $visibleSessions = $scanOnly ? array_values(array_filter($recentSessions, fn($s) => $s['username'] === null)) : $recentSessions; @endphp
+        @if(empty($visibleSessions))
             <div class="p-5">
-                <p class="text-sm text-gray-600 font-mono">No sessions yet — attackers will appear here once they connect</p>
+                <p class="text-sm text-gray-600 font-mono">{{ $scanOnly ? 'No scan-only sessions found' : 'No sessions yet — attackers will appear here once they connect' }}</p>
             </div>
         @else
             <div class="divide-y divide-gray-800">
-                @foreach($recentSessions as $session)
+                @foreach($visibleSessions as $session)
                     <div x-data="{ open: false }" class="px-5 py-3">
                         <div class="flex items-start justify-between gap-2">
                         <div class="flex flex-wrap items-center gap-2 cursor-pointer" @click="open = !open">
