@@ -14,7 +14,7 @@
     </div>
 
     {{-- Stat cards --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Total Sessions</p>
             <p class="text-3xl font-bold text-gray-100">{{ number_format($stats['total_sessions']) }}</p>

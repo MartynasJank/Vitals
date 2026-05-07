@@ -148,7 +148,7 @@
         <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800 mb-8">
             @foreach($firewallRules as $rule)
                 <div class="px-5 py-3">
-                    <p class="text-sm font-mono text-gray-300">{{ $rule }}</p>
+                    <p class="text-sm font-mono text-gray-300 break-words">{{ $rule }}</p>
                 </div>
             @endforeach
         </div>

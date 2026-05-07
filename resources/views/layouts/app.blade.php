@@ -36,8 +36,13 @@
                   -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out
                   bg-gray-900 border-r border-gray-800 flex flex-col"
            :class="{ 'translate-x-0': sidebarOpen }">
-        <div class="px-5 py-5 border-b border-gray-800">
+        <div class="px-5 py-5 border-b border-gray-800 flex items-center justify-between">
             <a href="{{ route('dashboard') }}" class="font-mono text-lg font-bold text-green-400 tracking-tight hover:text-green-300 transition-colors">vitals</a>
+            <button @click="sidebarOpen = false" class="md:hidden text-gray-500 hover:text-gray-300 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
         </div>
 
         <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

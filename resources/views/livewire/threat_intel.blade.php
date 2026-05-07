@@ -1,5 +1,5 @@
 <div>
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
         <h1 class="text-xl font-bold text-gray-100">Threat Intelligence</h1>
         <div class="flex gap-1">
             @foreach(['24h' => '24h', '7d' => '7d', '30d' => '30d'] as $value => $label)
