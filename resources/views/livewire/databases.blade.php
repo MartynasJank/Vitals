@@ -3,7 +3,7 @@
 
     {{-- Server stats --}}
     @if(!empty($serverStats))
-        <div class="grid grid-cols-2 gap-3 mb-4 md:grid-cols-4">
+        <div class="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-4">
             <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
                 <p class="text-xs text-gray-500 mb-1">Version</p>
                 <p class="text-sm font-mono text-gray-100">{{ $serverStats['version'] }}</p>
@@ -21,7 +21,7 @@
                 <p class="text-sm font-mono text-gray-100">{{ $serverStats['threads_running'] }}</p>
             </div>
         </div>
-        <div class="grid grid-cols-2 gap-3 mb-8 md:grid-cols-4">
+        <div class="grid grid-cols-2 gap-3 mb-8 sm:grid-cols-4">
             <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
                 <p class="text-xs text-gray-500 mb-1">Buffer Hit Rate</p>
                 <p class="text-sm font-mono {{ (float) $serverStats['buffer_hit_rate'] >= 99 ? 'text-green-400' : ((float) $serverStats['buffer_hit_rate'] >= 95 ? 'text-amber-400' : 'text-red-400') }}">

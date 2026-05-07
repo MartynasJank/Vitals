@@ -35,7 +35,7 @@
 
     {{-- Recent sessions --}}
     <div class="bg-gray-900 border border-gray-800 rounded-lg mb-4">
-        <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
+        <div class="px-5 py-4 border-b border-gray-800 flex flex-wrap items-center justify-between gap-2">
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Recent Attacker Sessions</p>
             <button wire:click="toggleLoginsOnly"
                     class="text-xs font-mono px-2.5 py-1 rounded transition-colors {{ $loginsOnly ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-800 text-gray-500 border border-gray-700 hover:text-gray-300' }}">
@@ -100,7 +100,7 @@
                         @if(!empty($session['commands']))
                             <div x-show="open" x-cloak class="mt-3 pl-4 border-l border-gray-800 space-y-1">
                                 @foreach($session['commands'] as $cmd)
-                                    <p class="text-xs font-mono text-green-300">$ {{ $cmd }}</p>
+                                    <p class="text-xs font-mono text-green-300 break-all">$ {{ $cmd }}</p>
                                 @endforeach
                             </div>
                         @endif
