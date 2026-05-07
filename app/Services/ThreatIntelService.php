@@ -15,6 +15,31 @@ use Illuminate\Support\Facades\Http;
 
 class ThreatIntelService
 {
+    /** @var array<int, int>|null */
+    private ?array $cachedIgnoredIpIds = null;
+
+    /** @return array<int, string> */
+    private function ignoredIps(): array
+    {
+        return config('security.ignored_ips', []);
+    }
+
+    /** @return array<int, int> */
+    private function ignoredIpIds(): array
+    {
+        if ($this->cachedIgnoredIpIds !== null) {
+            return $this->cachedIgnoredIpIds;
+        }
+
+        $ips = $this->ignoredIps();
+
+        if (empty($ips)) {
+            return $this->cachedIgnoredIpIds = [];
+        }
+
+        return $this->cachedIgnoredIpIds = ThreatIp::whereIn('ip', $ips)->pluck('id')->all();
+    }
+
     public function upsertIpWithEnrichment(string $ip): int
     {
         $record = ThreatIp::where('ip', $ip)->first();
@@ -93,6 +118,7 @@ class ThreatIntelService
     public function getRecentSshdAttempts(int $limit = 20): array
     {
         return SshAttempt::with('ip')
+            ->whereNotIn('ip_id', $this->ignoredIpIds())
             ->orderByDesc('timestamp')
             ->limit($limit)
             ->get()
@@ -123,18 +149,23 @@ class ThreatIntelService
 
         $tz = now()->format('P');
 
+        $ignoredIpIds = $this->ignoredIpIds();
+
         $ssh = SshAttempt::select(DB::raw("DATE_FORMAT(CONVERT_TZ(timestamp, '+00:00', '{$tz}'), '{$groupFormat}') as label, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
+            ->whereNotIn('ip_id', $ignoredIpIds)
             ->groupBy('label')
             ->pluck('count', 'label');
 
         $cowrie = CowrieLogin::select(DB::raw("DATE_FORMAT(CONVERT_TZ(timestamp, '+00:00', '{$tz}'), '{$groupFormat}') as label, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
+            ->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))
             ->groupBy('label')
             ->pluck('count', 'label');
 
         $nginx = NginxHit::select(DB::raw("DATE_FORMAT(CONVERT_TZ(timestamp, '+00:00', '{$tz}'), '{$groupFormat}') as label, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
+            ->whereNotIn('ip_id', $ignoredIpIds)
             ->groupBy('label')
             ->pluck('count', 'label');
 
@@ -154,6 +185,7 @@ class ThreatIntelService
     {
         return ThreatIp::select('country', 'country_code', DB::raw('SUM(total_hits) as count'))
             ->whereNotNull('country')
+            ->whereNotIn('ip', $this->ignoredIps())
             ->groupBy('country', 'country_code')
             ->orderByDesc('count')
             ->limit($limit)
@@ -173,6 +205,7 @@ class ThreatIntelService
     {
         return ThreatIp::select('org', DB::raw('COUNT(*) as count'))
             ->whereNotNull('org')
+            ->whereNotIn('ip', $this->ignoredIps())
             ->groupBy('org')
             ->orderByDesc('count')
             ->limit($limit)
@@ -191,6 +224,7 @@ class ThreatIntelService
     {
         return ThreatIp::select('isp', DB::raw('COUNT(*) as count'))
             ->whereNotNull('isp')
+            ->whereNotIn('ip', $this->ignoredIps())
             ->groupBy('isp')
             ->orderByDesc('count')
             ->limit($limit)
@@ -207,13 +241,17 @@ class ThreatIntelService
      */
     public function getTopSshUsernames(int $limit = 20): array
     {
+        $ignoredIpIds = $this->ignoredIpIds();
+
         $ssh = SshAttempt::select('username', DB::raw('COUNT(*) as count'))
             ->whereNotNull('username')
+            ->whereNotIn('ip_id', $ignoredIpIds)
             ->groupBy('username')
             ->pluck('count', 'username');
 
         $cowrie = CowrieLogin::select('username', DB::raw('COUNT(*) as count'))
             ->whereNotNull('username')
+            ->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))
             ->groupBy('username')
             ->pluck('count', 'username'); // all attempts, success + failed
 
@@ -236,6 +274,7 @@ class ThreatIntelService
     {
         return NginxHit::select('referer', DB::raw('COUNT(*) as count'))
             ->whereNotNull('referer')
+            ->whereNotIn('ip_id', $this->ignoredIpIds())
             ->groupBy('referer')
             ->orderByDesc('count')
             ->limit($limit)
@@ -254,6 +293,7 @@ class ThreatIntelService
     {
         return NginxHit::select('path', 'scan_type', DB::raw('COUNT(*) as count'))
             ->whereNotNull('path')
+            ->whereNotIn('ip_id', $this->ignoredIpIds())
             ->groupBy('path', 'scan_type')
             ->orderByDesc('count')
             ->limit($limit)
@@ -268,13 +308,14 @@ class ThreatIntelService
 
     public function getRepeatOffenderRate(): float
     {
-        $total = ThreatIp::count();
+        $ignoredIps = $this->ignoredIps();
+        $total = ThreatIp::whereNotIn('ip', $ignoredIps)->count();
 
         if ($total === 0) {
             return 0.0;
         }
 
-        $repeat = ThreatIp::where('total_hits', '>', 1)->count();
+        $repeat = ThreatIp::where('total_hits', '>', 1)->whereNotIn('ip', $ignoredIps)->count();
 
         return round(($repeat / $total) * 100, 1);
     }
@@ -284,10 +325,12 @@ class ThreatIntelService
      */
     public function getCrossSourceIps(): array
     {
-        $sshIpIds = SshAttempt::select('ip_id')->distinct()->pluck('ip_id');
-        $cowrieIpIds = CowrieSession::select('ip_id')->distinct()->pluck('ip_id');
+        $ignoredIpIds = $this->ignoredIpIds();
+
+        $sshIpIds = SshAttempt::select('ip_id')->whereNotIn('ip_id', $ignoredIpIds)->distinct()->pluck('ip_id');
+        $cowrieIpIds = CowrieSession::select('ip_id')->whereNotIn('ip_id', $ignoredIpIds)->distinct()->pluck('ip_id');
         $allSshIpIds = $sshIpIds->merge($cowrieIpIds)->unique()->values();
-        $nginxIpIds = NginxHit::select('ip_id')->distinct()->pluck('ip_id');
+        $nginxIpIds = NginxHit::select('ip_id')->whereNotIn('ip_id', $ignoredIpIds)->distinct()->pluck('ip_id');
         $crossIds = $allSshIpIds->intersect($nginxIpIds)->values();
 
         if ($crossIds->isEmpty()) {
@@ -326,18 +369,23 @@ class ThreatIntelService
 
         $tz = now()->format('P');
 
+        $ignoredIpIds = $this->ignoredIpIds();
+
         $ssh = SshAttempt::select(DB::raw("HOUR(CONVERT_TZ(timestamp, '+00:00', '{$tz}')) as hour, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
+            ->whereNotIn('ip_id', $ignoredIpIds)
             ->groupBy('hour')
             ->pluck('count', 'hour');
 
         $cowrie = CowrieLogin::select(DB::raw("HOUR(CONVERT_TZ(timestamp, '+00:00', '{$tz}')) as hour, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
+            ->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))
             ->groupBy('hour')
             ->pluck('count', 'hour');
 
         $nginx = NginxHit::select(DB::raw("HOUR(CONVERT_TZ(timestamp, '+00:00', '{$tz}')) as hour, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
+            ->whereNotIn('ip_id', $ignoredIpIds)
             ->groupBy('hour')
             ->pluck('count', 'hour');
 
@@ -364,6 +412,7 @@ class ThreatIntelService
         )
             ->whereNotNull('lat')
             ->whereNotNull('lon')
+            ->whereNotIn('ip', $this->ignoredIps())
             ->groupBy('lat', 'lon')
             ->orderByDesc('count')
             ->limit(500)
@@ -379,19 +428,21 @@ class ThreatIntelService
     public function getTotalAttacksLast24h(): int
     {
         $since = now()->subHours(24);
+        $ignoredIpIds = $this->ignoredIpIds();
 
-        return SshAttempt::where('timestamp', '>=', $since)->count()
-            + CowrieLogin::where('timestamp', '>=', $since)->count()
-            + NginxHit::where('timestamp', '>=', $since)->count();
+        return SshAttempt::where('timestamp', '>=', $since)->whereNotIn('ip_id', $ignoredIpIds)->count()
+            + CowrieLogin::where('timestamp', '>=', $since)->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))->count()
+            + NginxHit::where('timestamp', '>=', $since)->whereNotIn('ip_id', $ignoredIpIds)->count();
     }
 
     public function getTotalAttacksLastHour(): int
     {
         $since = now()->subHour();
+        $ignoredIpIds = $this->ignoredIpIds();
 
-        return SshAttempt::where('timestamp', '>=', $since)->count()
-            + CowrieLogin::where('timestamp', '>=', $since)->count()
-            + NginxHit::where('timestamp', '>=', $since)->count();
+        return SshAttempt::where('timestamp', '>=', $since)->whereNotIn('ip_id', $ignoredIpIds)->count()
+            + CowrieLogin::where('timestamp', '>=', $since)->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))->count()
+            + NginxHit::where('timestamp', '>=', $since)->whereNotIn('ip_id', $ignoredIpIds)->count();
     }
 
     /**
@@ -400,6 +451,7 @@ class ThreatIntelService
     public function getRecentNginxHits(int $limit = 20): array
     {
         return NginxHit::with('ip')
+            ->whereNotIn('ip_id', $this->ignoredIpIds())
             ->orderByDesc('timestamp')
             ->limit($limit)
             ->get()
@@ -422,6 +474,7 @@ class ThreatIntelService
     public function getRecentHoneypotLogins(int $limit = 20): array
     {
         return CowrieLogin::with(['session.ip'])
+            ->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $this->ignoredIpIds()))
             ->orderByDesc('timestamp')
             ->limit($limit)
             ->get()
@@ -446,11 +499,13 @@ class ThreatIntelService
      */
     public function getCowrieStats(): array
     {
+        $ignoredIpIds = $this->ignoredIpIds();
+
         return [
-            'total_sessions' => CowrieSession::count(),
-            'unique_ips' => CowrieSession::distinct('ip_id')->count('ip_id'),
-            'total_commands' => CowrieCommand::count(),
-            'total_downloads' => CowrieDownload::count(),
+            'total_sessions' => CowrieSession::whereNotIn('ip_id', $ignoredIpIds)->count(),
+            'unique_ips' => CowrieSession::whereNotIn('ip_id', $ignoredIpIds)->distinct('ip_id')->count('ip_id'),
+            'total_commands' => CowrieCommand::whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))->count(),
+            'total_downloads' => CowrieDownload::whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))->count(),
         ];
     }
 
@@ -460,6 +515,7 @@ class ThreatIntelService
     public function getRecentCowrieSessions(int $limit = 20): array
     {
         return CowrieSession::with(['ip', 'login', 'commands'])
+            ->whereNotIn('ip_id', $this->ignoredIpIds())
             ->orderByDesc('started_at')
             ->limit($limit)
             ->get()

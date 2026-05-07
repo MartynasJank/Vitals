@@ -46,7 +46,9 @@ class SecurityService
             }
         }
 
-        return $banned;
+        $ignoredIps = config('security.ignored_ips', []);
+
+        return array_values(array_filter($banned, fn ($entry) => ! in_array($entry['ip'], $ignoredIps, true)));
     }
 
     /**
@@ -60,6 +62,7 @@ class SecurityService
             return [];
         }
 
+        $ignoredIps = config('security.ignored_ips', []);
         $entries = [];
 
         foreach (explode("\n", trim($output)) as $line) {
@@ -69,7 +72,7 @@ class SecurityService
 
             preg_match('/^(\d{4}-\d{2}-\d{2}T[\d:]+).*for (?:invalid user )?(\S+) from ([\d.a-fA-F:]+)/', $line, $m);
 
-            if (isset($m[1], $m[2], $m[3])) {
+            if (isset($m[1], $m[2], $m[3]) && ! in_array($m[3], $ignoredIps, true)) {
                 $entries[] = ['time' => $m[1], 'user' => $m[2], 'ip' => $m[3]];
             }
         }
@@ -88,6 +91,7 @@ class SecurityService
             return [];
         }
 
+        $ignoredIps = config('security.ignored_ips', []);
         $entries = [];
 
         foreach (explode("\n", trim($output)) as $line) {
@@ -97,7 +101,7 @@ class SecurityService
 
             preg_match('/^(\d{4}-\d{2}-\d{2}T[\d:]+).*for (\S+) from ([\d.a-fA-F:]+)/', $line, $m);
 
-            if (isset($m[1], $m[2], $m[3])) {
+            if (isset($m[1], $m[2], $m[3]) && ! in_array($m[3], $ignoredIps, true)) {
                 $entries[] = ['time' => $m[1], 'user' => $m[2], 'ip' => $m[3]];
             }
         }
