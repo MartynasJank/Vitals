@@ -1,5 +1,5 @@
 <div>
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
         <h1 class="text-xl font-bold text-gray-100">Resources</h1>
         <div class="flex gap-1">
             @foreach(['1h' => '1h', '24h' => '24h', '7d' => '7d'] as $value => $label)
@@ -147,7 +147,7 @@
     </div>
 
     {{-- Top Processes --}}
-    <div class="flex items-center justify-between mb-3">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
         <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Top Processes</h2>
         <div class="flex gap-1">
             <button wire:click="setProcessSort('cpu')"
