@@ -6,7 +6,6 @@ use App\Models\CowrieCommand;
 use App\Models\CowrieDownload;
 use App\Models\CowrieLogin;
 use App\Models\CowrieSession;
-use App\Models\Credential;
 use App\Models\NginxHit;
 use App\Models\SshAttempt;
 use App\Models\ThreatIp;
@@ -539,13 +538,20 @@ class ThreatIntelService
      */
     public function getTopCredentials(int $limit = 20): array
     {
-        return Credential::orderByDesc('hit_count')
+        $ignoredIpIds = $this->ignoredIpIds();
+
+        return CowrieLogin::select('username', 'password', DB::raw('COUNT(*) as hit_count'))
+            ->whereNotNull('username')
+            ->where('username', '!=', '')
+            ->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))
+            ->groupBy('username', 'password')
+            ->orderByDesc('hit_count')
             ->limit($limit)
             ->get()
-            ->map(fn ($c) => [
-                'username' => $c->username,
-                'password' => $c->password,
-                'hit_count' => (int) $c->hit_count,
+            ->map(fn ($row) => [
+                'username' => $row->username,
+                'password' => $row->password,
+                'hit_count' => (int) $row->hit_count,
             ])
             ->all();
     }
@@ -555,8 +561,11 @@ class ThreatIntelService
      */
     public function getTopCowrieCommands(int $limit = 20): array
     {
+        $ignoredIpIds = $this->ignoredIpIds();
+
         return CowrieCommand::select('input', DB::raw('COUNT(*) as count'))
             ->where('input', '!=', '')
+            ->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))
             ->groupBy('input')
             ->orderByDesc('count')
             ->limit($limit)
@@ -573,7 +582,10 @@ class ThreatIntelService
      */
     public function getTopCowrieDownloads(int $limit = 20): array
     {
+        $ignoredIpIds = $this->ignoredIpIds();
+
         return CowrieDownload::select('url', 'filename', 'file_hash', DB::raw('COUNT(*) as count'))
+            ->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))
             ->groupBy('url', 'filename', 'file_hash')
             ->orderByDesc('count')
             ->limit($limit)
