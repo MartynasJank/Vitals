@@ -39,6 +39,8 @@ class Resources extends Component
 
     public string $processSort = 'cpu';
 
+    public ?string $killMessage = null;
+
     public function mount(): void
     {
         $this->loadStats();
@@ -68,6 +70,13 @@ class Resources extends Component
     public function setProcessSort(string $sort): void
     {
         $this->processSort = $sort;
+        $this->loadStats();
+    }
+
+    public function kill(int $pid): void
+    {
+        $success = app(ServerService::class)->killProcess($pid);
+        $this->killMessage = $success ? "Sent SIGTERM to PID {$pid}." : "Failed to kill PID {$pid}.";
         $this->loadStats();
     }
 
