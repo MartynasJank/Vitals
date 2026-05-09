@@ -10,8 +10,8 @@ use Livewire\Component;
 
 class Honeypot extends Component
 {
-    /** @var array{total_sessions: int, unique_ips: int, total_commands: int, total_downloads: int} */
-    public array $stats = ['total_sessions' => 0, 'unique_ips' => 0, 'total_commands' => 0, 'total_downloads' => 0];
+    /** @var array{total_sessions: int, unique_ips: int, total_commands: int, total_downloads: int, interesting_sessions: int} */
+    public array $stats = ['total_sessions' => 0, 'unique_ips' => 0, 'total_commands' => 0, 'total_downloads' => 0, 'interesting_sessions' => 0];
 
     /** @var array<int, array{session: string, ip: string|null, country: string|null, country_code: string|null, isp: string|null, username: string|null, password: string|null, duration_seconds: float|null, started_at: string|null, commands: array<int, string>}> */
     public array $recentSessions = [];
@@ -24,6 +24,15 @@ class Honeypot extends Component
 
     /** @var array<int, array{url: string, filename: string|null, file_hash: string|null, count: int}> */
     public array $topDownloads = [];
+
+    /** @var array<int, array{session: string, ip: string|null, country: string|null, country_code: string|null, isp: string|null, username: string|null, password: string|null, duration_seconds: float|null, started_at: string|null, tags: array<int, string>, commands: array<int, array{input: string, class: string}>}> */
+    public array $interestingSessions = [];
+
+    /** @var array<int, array{username: string, count: int}> */
+    public array $topUsernames = [];
+
+    /** @var array<int, array{password: string, count: int}> */
+    public array $topPasswords = [];
 
     public function mount(): void
     {
@@ -45,6 +54,9 @@ class Honeypot extends Component
             $this->topCredentials = $service->getTopCredentials();
             $this->topCommands = $service->getTopCowrieCommands();
             $this->topDownloads = $service->getTopCowrieDownloads();
+            $this->interestingSessions = $service->getInterestingSessions();
+            $this->topUsernames = $service->getTopUsernames();
+            $this->topPasswords = $service->getTopPasswords();
         } catch (\Exception) {
         }
     }
