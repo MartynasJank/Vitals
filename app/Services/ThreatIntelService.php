@@ -15,6 +15,27 @@ use Illuminate\Support\Facades\Http;
 
 class ThreatIntelService
 {
+    const FINGERPRINT_PATTERNS = [
+        '/uname/', '/whoami/', '/^id$/', '/hostname/', '/^pwd$/',
+        '/cpuinfo/', '/proc\/uptime/', '/proc\/version/', '/ifconfig/',
+        '/^echo/', '/^exit$/', '/^ls$/', '/os-release/', '/nproc/',
+        '/lscpu/', '/PATH=.*uname/', '/ip cloud/', '/^cat --help/',
+        '/^ls --help/', '/\/ip cloud print/',
+    ];
+
+    const THREAT_TAGS = [
+        'crypto miner' => '/[Mm]iner|xmrig|monero|stratum\+|D877F|mining/',
+        'telegram stealer' => '/TelegramDesktop|tdata/',
+        'malware download' => '/wget|curl.*http|fetch.*http/',
+        'persistence' => '/crontab|authorized_keys|systemctl enable|rc\.local/',
+        'secret harvesting' => '/\benv\b|\.env|AWS_|SECRET|TOKEN|PASSWORD/',
+        'credential dump' => '/\/etc\/shadow|\/etc\/passwd/',
+        'backdoor' => '/useradd|adduser|passwd.*root/',
+        'lateral movement' => '/ssh-keyscan|known_hosts|\.ssh\//',
+        'shell execution' => '/chmod.*\+x|bash.*http|sh.*http|\.\/[a-z]/',
+        'recon' => '/netstat|ss -|ps aux|ps -ef|mount|df -/',
+    ];
+
     /** @var array<int, int>|null */
     private ?array $cachedIgnoredIpIds = null;
 
@@ -501,7 +522,7 @@ class ThreatIntelService
     }
 
     /**
-     * @return array{total_sessions: int, unique_ips: int, total_commands: int, total_downloads: int}
+     * @return array{total_sessions: int, unique_ips: int, total_commands: int, total_downloads: int, interesting_sessions: int}
      */
     public function getCowrieStats(): array
     {
@@ -512,7 +533,172 @@ class ThreatIntelService
             'unique_ips' => CowrieSession::whereNotIn('ip_id', $ignoredIpIds)->distinct('ip_id')->count('ip_id'),
             'total_commands' => CowrieCommand::whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))->count(),
             'total_downloads' => CowrieDownload::whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))->count(),
+            'interesting_sessions' => $this->getInterestingSessionsCount(),
         ];
+    }
+
+    public function getInterestingSessionsCount(): int
+    {
+        $ignoredIpIds = $this->ignoredIpIds();
+        $count = 0;
+
+        CowrieSession::has('commands')
+            ->whereNotIn('ip_id', $ignoredIpIds)
+            ->with(['commands:cowrie_session_id,input'])
+            ->select('id')
+            ->each(function ($session) use (&$count) {
+                $commands = $session->commands->pluck('input')->filter(fn ($c) => $c !== '')->values()->all();
+                if ($this->sessionIsInteresting($commands)) {
+                    $count++;
+                }
+            });
+
+        return $count;
+    }
+
+    /**
+     * @return array<int, array{session: string, ip: string|null, country: string|null, country_code: string|null, isp: string|null, username: string|null, password: string|null, duration_seconds: float|null, started_at: string|null, tags: array<int, string>, commands: array<int, array{input: string, class: string}>}>
+     */
+    public function getInterestingSessions(int $limit = 20): array
+    {
+        $ignoredIpIds = $this->ignoredIpIds();
+        $results = [];
+
+        CowrieSession::has('commands')
+            ->whereNotIn('ip_id', $ignoredIpIds)
+            ->with(['ip', 'login', 'commands'])
+            ->orderByDesc('started_at')
+            ->each(function ($s) use (&$results, $limit) {
+                if (count($results) >= $limit) {
+                    return false;
+                }
+
+                $rawCommands = $s->commands->pluck('input')->filter(fn ($c) => $c !== '')->values()->all();
+
+                if (! $this->sessionIsInteresting($rawCommands)) {
+                    return true;
+                }
+
+                $tags = $this->detectTags($rawCommands);
+
+                $classifiedCommands = array_map(function (string $cmd) {
+                    if ($this->isFingerprinting($cmd)) {
+                        return ['input' => $cmd, 'class' => 'fingerprint'];
+                    }
+                    foreach (self::THREAT_TAGS as $pattern) {
+                        if (preg_match($pattern, $cmd)) {
+                            return ['input' => $cmd, 'class' => 'threat'];
+                        }
+                    }
+
+                    return ['input' => $cmd, 'class' => 'interesting'];
+                }, $rawCommands);
+
+                $results[] = [
+                    'session' => $s->session,
+                    'ip' => $s->ip?->ip,
+                    'country' => $s->ip?->country,
+                    'country_code' => $s->ip?->country_code ? strtolower($s->ip->country_code) : null,
+                    'isp' => $s->ip?->isp,
+                    'username' => $s->login?->username,
+                    'password' => $s->login?->password,
+                    'duration_seconds' => $s->duration_seconds,
+                    'started_at' => $s->started_at ? $this->localTime($s->started_at)->toDateTimeString() : null,
+                    'tags' => $tags,
+                    'commands' => $classifiedCommands,
+                ];
+            });
+
+        return $results;
+    }
+
+    /**
+     * @return array<int, array{username: string, count: int}>
+     */
+    public function getTopUsernames(int $limit = 15): array
+    {
+        $ignoredIpIds = $this->ignoredIpIds();
+
+        return CowrieLogin::select('username', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('username')
+            ->where('username', '!=', '')
+            ->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))
+            ->groupBy('username')
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => [
+                'username' => $row->username,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{password: string, count: int}>
+     */
+    public function getTopPasswords(int $limit = 15): array
+    {
+        $ignoredIpIds = $this->ignoredIpIds();
+
+        return CowrieLogin::select('password', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('password')
+            ->where('password', '!=', '')
+            ->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))
+            ->groupBy('password')
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => [
+                'password' => $row->password,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+    }
+
+    private function isFingerprinting(string $command): bool
+    {
+        foreach (self::FINGERPRINT_PATTERNS as $pattern) {
+            if (preg_match($pattern, $command)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @param array<int, string> $commands */
+    private function sessionIsInteresting(array $commands): bool
+    {
+        if (empty($commands)) {
+            return false;
+        }
+
+        foreach ($commands as $cmd) {
+            if (! $this->isFingerprinting($cmd)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<int, string>  $commands
+     * @return array<int, string>
+     */
+    private function detectTags(array $commands): array
+    {
+        $tags = [];
+        $allCommands = implode(' ', $commands);
+
+        foreach (self::THREAT_TAGS as $tag => $pattern) {
+            if (preg_match($pattern, $allCommands)) {
+                $tags[] = $tag;
+            }
+        }
+
+        return $tags;
     }
 
     /**
