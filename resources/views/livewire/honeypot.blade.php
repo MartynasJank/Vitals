@@ -31,6 +31,101 @@
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Malware Downloads</p>
             <p class="text-3xl font-bold text-red-400">{{ number_format($stats['total_downloads']) }}</p>
         </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Interesting Sessions</p>
+            <p class="text-3xl font-bold text-amber-400">{{ number_format($stats['interesting_sessions']) }}</p>
+        </div>
+    </div>
+
+    {{-- Interesting Sessions --}}
+    <div class="bg-gray-900 border border-gray-800 rounded-lg mb-4">
+        <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Interesting Sessions</p>
+            @if(!empty($interestingSessions))
+                <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400">{{ count($interestingSessions) }}</span>
+            @endif
+        </div>
+        @if(empty($interestingSessions))
+            <div class="p-5">
+                <p class="text-sm text-gray-600 font-mono">No interesting sessions yet — only fingerprinting activity so far</p>
+            </div>
+        @else
+            <div class="divide-y divide-gray-800">
+                @foreach($interestingSessions as $session)
+                    <div x-data="{ open: false }" class="px-5 py-3">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex flex-wrap items-center gap-2 cursor-pointer" @click="open = !open">
+                                <span class="text-xs font-mono text-gray-600">{{ $session['started_at'] }}</span>
+
+                                @if($session['country_code'])
+                                    <img src="https://flagcdn.com/16x12/{{ $session['country_code'] }}.png"
+                                         alt="{{ $session['country'] ?? '' }}"
+                                         class="w-4 h-3 object-cover rounded-sm opacity-80">
+                                @endif
+
+                                <span class="text-sm font-mono text-amber-400">{{ $session['ip'] ?? '—' }}</span>
+
+                                @if($session['country'])
+                                    <span class="text-xs text-gray-500">{{ $session['country'] }}</span>
+                                @endif
+
+                                @if($session['isp'])
+                                    <span class="text-xs text-gray-600 font-mono">{{ $session['isp'] }}</span>
+                                @endif
+
+                                @if($session['username'])
+                                    <span class="text-xs px-1.5 py-0.5 rounded bg-green-900/30 text-green-400 font-mono">{{ $session['username'] }}/{{ $session['password'] }}</span>
+                                @else
+                                    <span class="text-xs px-1.5 py-0.5 rounded bg-gray-800 text-gray-600 font-mono">scan only</span>
+                                @endif
+
+                                @if($session['duration_seconds'])
+                                    <span class="text-xs text-gray-600 font-mono">{{ number_format($session['duration_seconds'], 1) }}s</span>
+                                @endif
+
+                                @foreach($session['tags'] as $tag)
+                                    @php
+                                        $tagColor = match($tag) {
+                                            'recon' => 'bg-blue-900/30 text-blue-400',
+                                            'telegram stealer', 'secret harvesting', 'credential dump', 'lateral movement' => 'bg-amber-900/30 text-amber-400',
+                                            default => 'bg-red-900/30 text-red-400',
+                                        };
+                                    @endphp
+                                    <span class="text-xs px-1.5 py-0.5 rounded font-mono {{ $tagColor }}">{{ $tag }}</span>
+                                @endforeach
+
+                                @if(!empty($session['commands']))
+                                    <span class="text-xs px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-400 font-mono">{{ count($session['commands']) }} cmd{{ count($session['commands']) !== 1 ? 's' : '' }}</span>
+                                    <svg class="w-3 h-3 text-gray-600 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                @endif
+                            </div>
+                            <button wire:click="ban('{{ $session['ip'] }}')"
+                                    wire:confirm="Ban {{ $session['ip'] }}?"
+                                    class="text-xs text-gray-600 hover:text-red-400 transition-colors font-mono flex-shrink-0 mt-0.5">
+                                ban
+                            </button>
+                        </div>
+
+                        @if(!empty($session['commands']))
+                            <div x-show="open" x-cloak class="mt-3 pl-4 border-l border-gray-800 space-y-1">
+                                @foreach($session['commands'] as $cmd)
+                                    @php
+                                        $cmdClass = match($cmd['class']) {
+                                            'fingerprint' => 'text-gray-600',
+                                            'threat' => 'text-amber-400',
+                                            default => 'text-green-300',
+                                        };
+                                    @endphp
+                                    <p class="text-xs font-mono {{ $cmdClass }} break-all">$ {{ $cmd['input'] }}</p>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        @endif
     </div>
 
     {{-- Recent sessions --}}
@@ -111,8 +206,56 @@
     </div>
 
     {{-- Credentials + Commands --}}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        {{-- Top credentials --}}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        {{-- Top usernames --}}
+        <div class="bg-gray-900 border border-gray-800 rounded-lg">
+            <div class="px-5 py-4 border-b border-gray-800">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Top Usernames</p>
+            </div>
+            @if(empty($topUsernames))
+                <div class="p-5">
+                    <p class="text-sm text-gray-600 font-mono">No data yet</p>
+                </div>
+            @else
+                <div class="divide-y divide-gray-800">
+                    @foreach($topUsernames as $i => $row)
+                        <div class="px-5 py-2.5 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="text-xs font-mono text-gray-600 w-5 text-right flex-shrink-0">{{ $i + 1 }}</span>
+                                <span class="text-xs font-mono text-green-400 truncate">{{ $row['username'] }}</span>
+                            </div>
+                            <span class="text-xs font-mono text-amber-400 flex-shrink-0">{{ number_format($row['count']) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        {{-- Top passwords --}}
+        <div class="bg-gray-900 border border-gray-800 rounded-lg">
+            <div class="px-5 py-4 border-b border-gray-800">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Top Passwords</p>
+            </div>
+            @if(empty($topPasswords))
+                <div class="p-5">
+                    <p class="text-sm text-gray-600 font-mono">No data yet</p>
+                </div>
+            @else
+                <div class="divide-y divide-gray-800">
+                    @foreach($topPasswords as $i => $row)
+                        <div class="px-5 py-2.5 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="text-xs font-mono text-gray-600 w-5 text-right flex-shrink-0">{{ $i + 1 }}</span>
+                                <span class="text-xs font-mono text-gray-400 truncate">{{ $row['password'] }}</span>
+                            </div>
+                            <span class="text-xs font-mono text-amber-400 flex-shrink-0">{{ number_format($row['count']) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        {{-- Top credentials (combined) --}}
         <div class="bg-gray-900 border border-gray-800 rounded-lg">
             <div class="px-5 py-4 border-b border-gray-800">
                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Top Credentials Tried</p>
@@ -137,30 +280,30 @@
                 </div>
             @endif
         </div>
+    </div>
 
-        {{-- Top commands --}}
-        <div class="bg-gray-900 border border-gray-800 rounded-lg">
-            <div class="px-5 py-4 border-b border-gray-800">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Top Commands Run</p>
-            </div>
-            @if(empty($topCommands))
-                <div class="p-5">
-                    <p class="text-sm text-gray-600 font-mono">No data yet</p>
-                </div>
-            @else
-                <div class="divide-y divide-gray-800">
-                    @foreach($topCommands as $i => $cmd)
-                        <div class="px-5 py-2.5 flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <span class="text-xs font-mono text-gray-600 w-5 text-right flex-shrink-0">{{ $i + 1 }}</span>
-                                <span class="text-xs font-mono text-green-300 truncate">$ {{ $cmd['input'] }}</span>
-                            </div>
-                            <span class="text-xs font-mono text-blue-400 flex-shrink-0">{{ number_format($cmd['count']) }}</span>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
+    {{-- Top commands --}}
+    <div class="bg-gray-900 border border-gray-800 rounded-lg mb-4">
+        <div class="px-5 py-4 border-b border-gray-800">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Top Commands Run</p>
         </div>
+        @if(empty($topCommands))
+            <div class="p-5">
+                <p class="text-sm text-gray-600 font-mono">No data yet</p>
+            </div>
+        @else
+            <div class="divide-y divide-gray-800">
+                @foreach($topCommands as $i => $cmd)
+                    <div class="px-5 py-2.5 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="text-xs font-mono text-gray-600 w-5 text-right flex-shrink-0">{{ $i + 1 }}</span>
+                            <span class="text-xs font-mono text-green-300 truncate">$ {{ $cmd['input'] }}</span>
+                        </div>
+                        <span class="text-xs font-mono text-blue-400 flex-shrink-0">{{ number_format($cmd['count']) }}</span>
+                    </div>
+                @endforeach
+            </div>
+        @endif
     </div>
 
     {{-- Malware downloads --}}
