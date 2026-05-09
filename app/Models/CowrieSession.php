@@ -17,12 +17,14 @@ class CowrieSession extends Model
         'started_at',
         'ended_at',
         'duration_seconds',
+        'is_interesting',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
         'duration_seconds' => 'float',
+        'is_interesting' => 'bool',
     ];
 
     public function ip(): BelongsTo
