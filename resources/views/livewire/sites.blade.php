@@ -86,7 +86,8 @@
 
                             {{-- Nginx config viewer --}}
                             @if($nginxConfig)
-                                <div x-data="{ open: false }">
+                                <div x-data="{ open: false }"
+                                     x-effect="if (open) $nextTick(() => { if ($refs.configCode && !$refs.configCode.dataset.highlighted) hljs.highlightElement($refs.configCode) })">
                                     <button @click="open = !open"
                                             class="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 transition-colors font-mono">
                                         <svg class="w-3 h-3 transition-transform" :class="{ 'rotate-90': open }"
@@ -95,8 +96,8 @@
                                         </svg>
                                         nginx config
                                     </button>
-                                    <div x-show="open" x-cloak class="mt-3">
-                                        <pre class="text-xs font-mono text-gray-400 bg-gray-950 rounded-lg p-4 overflow-x-auto max-h-72 overflow-y-auto leading-relaxed">{{ $nginxConfig }}</pre>
+                                    <div x-show="open" x-cloak class="mt-3" wire:ignore>
+                                        <pre class="text-xs rounded-lg overflow-x-auto max-h-72 overflow-y-auto leading-relaxed !bg-gray-950 !p-4"><code x-ref="configCode" class="language-nginx !bg-transparent">{{ $nginxConfig }}</code></pre>
                                     </div>
                                 </div>
                             @endif
