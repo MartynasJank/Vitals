@@ -32,6 +32,11 @@ class ParseCowrieLogs extends Command
         $state = file_exists($stateFile) ? (json_decode(file_get_contents($stateFile), true) ?? []) : [];
         $offset = $state['offset'] ?? 0;
 
+        if (! ($state['is_interesting_backfilled'] ?? false)) {
+            $this->backfillInterestingSessions();
+            $state['is_interesting_backfilled'] = true;
+        }
+
         $fileSize = filesize(self::LOG_FILE);
 
         if ($offset > $fileSize) {
@@ -139,6 +144,37 @@ class ParseCowrieLogs extends Command
             'input' => $event['input'],
             'timestamp' => $this->parseTimestamp($event['timestamp']),
         ]);
+
+        if (! $session->is_interesting && $event['input'] !== '' && ! $this->isFingerprinting($event['input'])) {
+            $session->update(['is_interesting' => true]);
+        }
+    }
+
+    private function isFingerprinting(string $command): bool
+    {
+        foreach (ThreatIntelService::FINGERPRINT_PATTERNS as $pattern) {
+            if (preg_match($pattern, $command)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function backfillInterestingSessions(): void
+    {
+        CowrieSession::has('commands')
+            ->where('is_interesting', false)
+            ->with(['commands:cowrie_session_id,input'])
+            ->each(function (CowrieSession $session) {
+                foreach ($session->commands as $command) {
+                    if ($command->input !== '' && ! $this->isFingerprinting($command->input)) {
+                        $session->update(['is_interesting' => true]);
+
+                        return;
+                    }
+                }
+            });
     }
 
     private function handleDownload(array $event): void
