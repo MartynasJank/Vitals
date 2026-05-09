@@ -225,6 +225,18 @@ class ServerService
         return $partitions;
     }
 
+    public function killProcess(int $pid): bool
+    {
+        if ($pid <= 1) {
+            return false;
+        }
+
+        $escaped = escapeshellarg((string) $pid);
+        $output = shell_exec("kill {$escaped} 2>&1");
+
+        return $output === null || trim($output) === '';
+    }
+
     /**
      * @return array<int, array{pid: int, user: string, cpu: float, memory: float, command: string}>
      */
