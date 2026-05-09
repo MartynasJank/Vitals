@@ -1,4 +1,10 @@
 <div>
+    @if($killMessage)
+        <div class="mb-4 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 font-mono">
+            {{ $killMessage }}
+        </div>
+    @endif
+
     <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
         <h1 class="text-xl font-bold text-gray-100">Resources</h1>
         <div class="flex gap-1">
@@ -167,15 +173,23 @@
             <p class="text-xs text-gray-600 uppercase tracking-wider col-span-2">User</p>
             <p class="text-xs {{ $processSort === 'cpu' ? 'text-gray-300' : 'text-gray-600' }} uppercase tracking-wider col-span-1 text-right">CPU%</p>
             <p class="text-xs {{ $processSort === 'memory' ? 'text-gray-300' : 'text-gray-600' }} uppercase tracking-wider col-span-1 text-right">MEM%</p>
-            <p class="text-xs text-gray-600 uppercase tracking-wider col-span-7">Command</p>
+            <p class="text-xs text-gray-600 uppercase tracking-wider col-span-6">Command</p>
+            <p class="text-xs text-gray-600 uppercase tracking-wider col-span-1 text-right">Kill</p>
         </div>
         @foreach($processes as $proc)
-            <div class="px-5 py-2.5 grid grid-cols-12 gap-4 border-t border-gray-800/60">
+            <div class="px-5 py-2.5 grid grid-cols-12 gap-4 border-t border-gray-800/60 items-center">
                 <p class="text-xs font-mono text-gray-500 col-span-1">{{ $proc['pid'] }}</p>
                 <p class="text-xs font-mono text-gray-400 col-span-2 truncate">{{ $proc['user'] }}</p>
                 <p class="text-xs font-mono col-span-1 text-right {{ $proc['cpu'] > 50 ? 'text-red-400' : ($proc['cpu'] > 20 ? 'text-amber-400' : 'text-gray-300') }}">{{ $proc['cpu'] }}</p>
                 <p class="text-xs font-mono col-span-1 text-right {{ $proc['memory'] > 20 ? 'text-amber-400' : 'text-gray-300' }}">{{ $proc['memory'] }}</p>
-                <p class="text-xs font-mono text-gray-400 col-span-7 truncate">{{ $proc['command'] }}</p>
+                <p class="text-xs font-mono text-gray-400 col-span-6 truncate">{{ $proc['command'] }}</p>
+                <div class="col-span-1 flex justify-end">
+                    <button wire:click="kill({{ $proc['pid'] }})"
+                            wire:confirm="Send SIGTERM to PID {{ $proc['pid'] }}?"
+                            class="text-xs font-mono text-gray-700 hover:text-red-400 transition-colors">
+                        kill
+                    </button>
+                </div>
             </div>
         @endforeach
     </div>
