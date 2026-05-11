@@ -242,20 +242,54 @@
 
 @script
 <script>
+    const crosshairPlugin = {
+        id: 'crosshair',
+        afterDraw(chart) {
+            if (chart.tooltip._active && chart.tooltip._active.length) {
+                const ctx = chart.ctx;
+                const x = chart.tooltip._active[0].element.x;
+                const topY = chart.scales.y.top;
+                const bottomY = chart.scales.y.bottom;
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(x, topY);
+                ctx.lineTo(x, bottomY);
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(156, 163, 175, 0.25)';
+                ctx.stroke();
+                ctx.restore();
+            }
+        },
+    };
+
+    const tooltipDefaults = {
+        backgroundColor: '#111827',
+        borderColor: '#374151',
+        borderWidth: 1,
+        titleColor: '#9ca3af',
+        bodyColor: '#e5e7eb',
+        padding: 10,
+        titleFont: { family: 'monospace', size: 11 },
+        bodyFont: { family: 'monospace', size: 11 },
+    };
+
     const chartOpts = {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: false }, tooltip: tooltipDefaults },
         scales: {
             x: { ticks: { color: '#9ca3af', font: { size: 12, family: 'monospace' }, maxTicksLimit: 12, maxRotation: 0 }, grid: { color: 'rgba(75,85,99,0.15)' } },
             y: { ticks: { color: '#9ca3af', font: { size: 12 }, maxTicksLimit: 5 }, grid: { color: 'rgba(75,85,99,0.15)' } },
         },
+        elements: { point: { radius: 0, hoverRadius: 4 } },
     };
 
     const barOpts = (horizontal) => ({
         ...chartOpts,
         indexAxis: horizontal ? 'y' : 'x',
-        plugins: { legend: { display: false } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: false }, tooltip: tooltipDefaults },
         scales: {
             x: { ticks: { color: '#9ca3af', font: { size: 12 } }, grid: { color: 'rgba(75,85,99,0.15)' } },
             y: { ticks: { color: '#9ca3af', font: { size: 12, family: 'monospace' }, maxTicksLimit: 10 }, grid: { color: 'rgba(75,85,99,0.15)' } },
@@ -282,11 +316,12 @@
         data: {
             labels: d.volume.map(r => r.label),
             datasets: [
-                { label: 'SSH', data: d.volume.map(r => r.ssh), borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.08)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5 },
-                { label: 'Nginx', data: d.volume.map(r => r.nginx), borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.08)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5 },
+                { label: 'SSH', data: d.volume.map(r => r.ssh), borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.08)', fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5 },
+                { label: 'Nginx', data: d.volume.map(r => r.nginx), borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.08)', fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5 },
             ],
         },
-        options: { ...chartOpts, plugins: { legend: { display: false } } },
+        options: { ...chartOpts, plugins: { legend: { display: false }, tooltip: { ...tooltipDefaults, mode: 'index', intersect: false } } },
+        plugins: [crosshairPlugin],
     }) : null;
 
     const heatmapEl = document.getElementById('heatmapChart');
@@ -338,12 +373,13 @@
         markersLayer.clearLayers();
         origins.forEach(r => {
             const radius = Math.min(3 + Math.log2(r.count + 1) * 2, 14);
+            const location = r.country || `${r.lat.toFixed(1)}°, ${r.lon.toFixed(1)}°`;
             L.circleMarker([r.lat, r.lon], {
                 radius,
                 fillColor: '#f87171',
                 color: 'transparent',
                 fillOpacity: 0.65,
-            }).bindTooltip(`${r.count} attack${r.count !== 1 ? 's' : ''} · ${r.lat.toFixed(1)}°, ${r.lon.toFixed(1)}°`, { className: 'leaflet-dark-tooltip' })
+            }).bindTooltip(`${location} · ${r.count} attack${r.count !== 1 ? 's' : ''}`, { className: 'leaflet-dark-tooltip' })
               .addTo(markersLayer);
         });
     };
