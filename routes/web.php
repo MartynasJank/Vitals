@@ -8,6 +8,7 @@ use App\Livewire\Databases;
 use App\Livewire\Honeypot;
 use App\Livewire\IpDetail;
 use App\Livewire\Logs;
+use App\Livewire\MalwareDetail;
 use App\Livewire\MalwareViewer;
 use App\Livewire\Resources;
 use App\Livewire\Security;
@@ -33,4 +34,5 @@ Route::middleware(RequireAuth::class)->group(function () {
     Route::get('/threat-intel/ip/{ip}', IpDetail::class)->name('ip-detail');
     Route::get('/honeypot', Honeypot::class)->name('honeypot');
     Route::get('/honeypot/malware', MalwareViewer::class)->name('honeypot.malware')->middleware(MalwareViewerCsp::class);
+    Route::get('/honeypot/malware/{sha256}', MalwareDetail::class)->name('honeypot.malware.detail');
 });
