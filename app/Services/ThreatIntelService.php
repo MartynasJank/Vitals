@@ -6,6 +6,7 @@ use App\Models\CowrieCommand;
 use App\Models\CowrieDownload;
 use App\Models\CowrieLogin;
 use App\Models\CowrieSession;
+use App\Models\MalwareFile;
 use App\Models\NginxHit;
 use App\Models\SshAttempt;
 use App\Models\ThreatIp;
@@ -794,5 +795,118 @@ class ThreatIntelService
                 'count' => (int) $row->count,
             ])
             ->all();
+    }
+
+    /**
+     * @return array{vpn: int, proxy: int, tor: int, clean: int, total: int}
+     */
+    public function getAnonymiserBreakdown(): array
+    {
+        $base = ThreatIp::whereNotIn('ip', $this->ignoredIps());
+
+        $total = (clone $base)->count();
+        $vpn = (clone $base)->where('is_vpn', true)->count();
+        $proxy = (clone $base)->where('is_proxy', true)->where('is_vpn', false)->count();
+        $tor = (clone $base)->where('is_tor', true)->count();
+        $clean = (clone $base)->where('is_vpn', false)->where('is_proxy', false)->where('is_tor', false)->count();
+
+        return compact('vpn', 'proxy', 'tor', 'clean', 'total');
+    }
+
+    /**
+     * @return array<int, array{asn: string, org: string|null, count: int}>
+     */
+    public function getTopAsns(int $limit = 10): array
+    {
+        return ThreatIp::select('asn', 'org', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('asn')
+            ->whereNotIn('ip', $this->ignoredIps())
+            ->groupBy('asn', 'org')
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => [
+                'asn' => $row->asn,
+                'org' => $row->org,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array{profile: ThreatIp, ssh_count: int, nginx_count: int, cowrie_count: int, malware_count: int, ssh_attempts: array, nginx_hits: array, cowrie_sessions: array, malware_files: array}|null
+     */
+    public function getIpProfile(string $ip): ?array
+    {
+        $threatIp = ThreatIp::where('ip', $ip)->first();
+        if (! $threatIp) {
+            return null;
+        }
+
+        $sshAttempts = SshAttempt::where('ip_id', $threatIp->id)
+            ->orderByDesc('timestamp')
+            ->limit(50)
+            ->get()
+            ->map(fn ($a) => [
+                'username' => $a->username,
+                'timestamp' => $a->timestamp?->format('Y-m-d H:i'),
+            ])
+            ->all();
+
+        $nginxHits = NginxHit::where('ip_id', $threatIp->id)
+            ->orderByDesc('timestamp')
+            ->limit(50)
+            ->get()
+            ->map(fn ($h) => [
+                'path' => $h->path,
+                'method' => $h->method,
+                'status_code' => $h->status_code,
+                'scan_type' => $h->scan_type,
+                'user_agent' => $h->user_agent,
+                'timestamp' => $h->timestamp?->format('Y-m-d H:i'),
+            ])
+            ->all();
+
+        $sessionIds = CowrieSession::where('ip_id', $threatIp->id)->pluck('id');
+
+        $cowrieSessions = CowrieSession::whereIn('id', $sessionIds)
+            ->with(['login', 'commands', 'downloads'])
+            ->orderByDesc('started_at')
+            ->limit(20)
+            ->get()
+            ->map(fn ($s) => [
+                'started_at' => $s->started_at?->format('Y-m-d H:i'),
+                'duration_seconds' => $s->duration_seconds,
+                'is_interesting' => $s->is_interesting,
+                'username' => $s->login?->username,
+                'password' => $s->login?->password,
+                'is_success' => $s->login?->is_success ?? false,
+                'commands' => $s->commands->map(fn ($c) => $c->input)->filter()->values()->all(),
+                'downloads' => $s->downloads->map(fn ($d) => $d->url)->filter()->values()->all(),
+            ])
+            ->all();
+
+        $fileHashes = CowrieDownload::whereIn('cowrie_session_id', $sessionIds)
+            ->whereNotNull('file_hash')
+            ->pluck('file_hash')
+            ->unique()
+            ->values();
+
+        $malwareFiles = MalwareFile::with('highlights')
+            ->whereIn('sha256', $fileHashes)
+            ->get()
+            ->all();
+
+        return [
+            'profile' => $threatIp,
+            'ssh_count' => SshAttempt::where('ip_id', $threatIp->id)->count(),
+            'nginx_count' => NginxHit::where('ip_id', $threatIp->id)->count(),
+            'cowrie_count' => count($sessionIds),
+            'malware_count' => count($malwareFiles),
+            'ssh_attempts' => $sshAttempts,
+            'nginx_hits' => $nginxHits,
+            'cowrie_sessions' => $cowrieSessions,
+            'malware_files' => $malwareFiles,
+        ];
     }
 }
