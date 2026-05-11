@@ -259,7 +259,8 @@
             @foreach($crossSourceIps as $entry)
                 <div class="px-5 py-3">
                     <div class="flex flex-wrap items-center gap-2">
-                        <p class="text-sm font-mono text-amber-400">{{ $entry['ip'] }}</p>
+                        <a href="{{ route('ip-detail', $entry['ip']) }}"
+                           class="text-sm font-mono text-amber-400 hover:text-amber-300 hover:underline transition-colors">{{ $entry['ip'] }}</a>
 
                         @if($entry['country_code'])
                             <img src="https://flagcdn.com/16x12/{{ $entry['country_code'] }}.png"
