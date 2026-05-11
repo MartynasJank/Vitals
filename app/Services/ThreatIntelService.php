@@ -795,4 +795,40 @@ class ThreatIntelService
             ])
             ->all();
     }
+
+    /**
+     * @return array{vpn: int, proxy: int, tor: int, clean: int, total: int}
+     */
+    public function getAnonymiserBreakdown(): array
+    {
+        $base = ThreatIp::whereNotIn('ip', $this->ignoredIps());
+
+        $total = (clone $base)->count();
+        $vpn = (clone $base)->where('is_vpn', true)->count();
+        $proxy = (clone $base)->where('is_proxy', true)->where('is_vpn', false)->count();
+        $tor = (clone $base)->where('is_tor', true)->count();
+        $clean = (clone $base)->where('is_vpn', false)->where('is_proxy', false)->where('is_tor', false)->count();
+
+        return compact('vpn', 'proxy', 'tor', 'clean', 'total');
+    }
+
+    /**
+     * @return array<int, array{asn: string, org: string|null, count: int}>
+     */
+    public function getTopAsns(int $limit = 10): array
+    {
+        return ThreatIp::select('asn', 'org', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('asn')
+            ->whereNotIn('ip', $this->ignoredIps())
+            ->groupBy('asn', 'org')
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => [
+                'asn' => $row->asn,
+                'org' => $row->org,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+    }
 }
