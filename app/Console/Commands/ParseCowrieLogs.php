@@ -86,6 +86,7 @@ class ParseCowrieLogs extends Command
             'cowrie.login.failed' => $this->handleLogin($event, false),
             'cowrie.command.input' => $this->handleCommand($event),
             'cowrie.session.file_download' => $this->handleDownload($event),
+            'cowrie.session.file_upload' => $this->handleUpload($event),
             'cowrie.session.closed' => $this->handleClose($event),
             default => null,
         };
@@ -190,6 +191,37 @@ class ParseCowrieLogs extends Command
             'url' => $event['url'] ?? null,
             'filename' => isset($event['outfile']) ? basename($event['outfile']) : null,
             'file_hash' => $event['shasum'] ?? null,
+            'timestamp' => $this->parseTimestamp($event['timestamp']),
+        ]);
+    }
+
+    private function handleUpload(array $event): void
+    {
+        $session = CowrieSession::where('session', $event['session'])->first();
+
+        if (! $session) {
+            return;
+        }
+
+        $shasum = $event['shasum'] ?? null;
+
+        if (! $shasum) {
+            return;
+        }
+
+        $already = CowrieDownload::where('cowrie_session_id', $session->id)
+            ->where('file_hash', $shasum)
+            ->exists();
+
+        if ($already) {
+            return;
+        }
+
+        CowrieDownload::create([
+            'cowrie_session_id' => $session->id,
+            'url' => '',
+            'filename' => $event['filename'] ?? null,
+            'file_hash' => $shasum,
             'timestamp' => $this->parseTimestamp($event['timestamp']),
         ]);
     }
