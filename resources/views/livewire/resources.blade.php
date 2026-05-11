@@ -205,10 +205,43 @@
 
 @script
 <script>
+    const crosshairPlugin = {
+        id: 'crosshair',
+        afterDraw(chart) {
+            if (chart.tooltip._active && chart.tooltip._active.length) {
+                const ctx = chart.ctx;
+                const x = chart.tooltip._active[0].element.x;
+                const topY = chart.scales.y.top;
+                const bottomY = chart.scales.y.bottom;
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(x, topY);
+                ctx.lineTo(x, bottomY);
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(156, 163, 175, 0.25)';
+                ctx.stroke();
+                ctx.restore();
+            }
+        },
+    };
+
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: '#111827',
+                borderColor: '#374151',
+                borderWidth: 1,
+                titleColor: '#9ca3af',
+                bodyColor: '#e5e7eb',
+                padding: 10,
+                titleFont: { family: 'monospace', size: 11 },
+                bodyFont: { family: 'monospace', size: 11 },
+            },
+        },
         scales: {
             x: {
                 display: true,
@@ -223,7 +256,7 @@
                 grid: { color: 'rgba(75, 85, 99, 0.2)' },
             },
         },
-        elements: { point: { radius: 0 }, line: { tension: 0.4, borderWidth: 1.5 } },
+        elements: { point: { radius: 0, hoverRadius: 4 }, line: { tension: 0.4, borderWidth: 1.5 } },
     };
 
     const readData = () => {
@@ -239,14 +272,16 @@
 
     const cpuChart = new Chart(document.getElementById('cpuChart'), {
         type: 'line',
-        data: { labels: initial.labels, datasets: [{ data: initial.cpu, borderColor: 'rgb(74, 222, 128)', backgroundColor: 'rgba(74, 222, 128, 0.1)', fill: true }] },
+        data: { labels: initial.labels, datasets: [{ label: 'CPU', data: initial.cpu, borderColor: 'rgb(74, 222, 128)', backgroundColor: 'rgba(74, 222, 128, 0.1)', fill: true }] },
         options: chartOptions,
+        plugins: [crosshairPlugin],
     });
 
     const ramChart = new Chart(document.getElementById('ramChart'), {
         type: 'line',
-        data: { labels: initial.labels, datasets: [{ data: initial.ram, borderColor: 'rgb(96, 165, 250)', backgroundColor: 'rgba(96, 165, 250, 0.1)', fill: true }] },
+        data: { labels: initial.labels, datasets: [{ label: 'RAM', data: initial.ram, borderColor: 'rgb(96, 165, 250)', backgroundColor: 'rgba(96, 165, 250, 0.1)', fill: true }] },
         options: chartOptions,
+        plugins: [crosshairPlugin],
     });
 
     new MutationObserver(() => {

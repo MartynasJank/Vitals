@@ -165,13 +165,26 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#111827',
+                    borderColor: '#374151',
+                    borderWidth: 1,
+                    titleColor: '#9ca3af',
+                    bodyColor: '#e5e7eb',
+                    padding: 8,
+                    titleFont: { family: 'monospace', size: 11 },
+                    bodyFont: { family: 'monospace', size: 11 },
+                },
+            },
             scales: {
                 x: { display: false },
                 y: { display: false, min: 0, max: 100 },
             },
             elements: {
-                point: { radius: 0 },
+                point: { radius: 0, hoverRadius: 3 },
                 line: { tension: 0.4, borderWidth: 1.5 },
             },
         },
