@@ -14,7 +14,7 @@
         {{-- Header badges --}}
         <div class="flex flex-wrap items-center gap-2 mb-6">
             @if($profile->country_code)
-                <img src="https://flagcdn.com/16x12/{{ $profile->country_code }}.png"
+                <img src="https://flagcdn.com/16x12/{{ strtolower($profile->country_code) }}.png"
                      alt="{{ $profile->country }}"
                      class="w-4 h-3 object-cover rounded-sm opacity-80">
             @endif
