@@ -43,6 +43,12 @@ class ThreatIntel extends Component
     /** @var array<int, array{lat: float, lon: float, count: int}> */
     public array $attackOrigins = [];
 
+    /** @var array{vpn: int, proxy: int, tor: int, clean: int, total: int} */
+    public array $anonymiserBreakdown = ['vpn' => 0, 'proxy' => 0, 'tor' => 0, 'clean' => 0, 'total' => 0];
+
+    /** @var array<int, array{asn: string, org: string|null, count: int}> */
+    public array $topAsns = [];
+
     public function mount(): void
     {
         $this->loadData();
@@ -65,6 +71,8 @@ class ThreatIntel extends Component
             $this->crossSourceIps = $service->getCrossSourceIps();
             $this->attackHeatmap = $service->getAttackHeatmap($this->timeRange);
             $this->attackOrigins = $service->getAttackOrigins();
+            $this->anonymiserBreakdown = $service->getAnonymiserBreakdown();
+            $this->topAsns = $service->getTopAsns();
         } catch (\Exception) {
             // Degrade gracefully if the threat DB is not yet configured
         }
