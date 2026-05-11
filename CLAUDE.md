@@ -19,14 +19,15 @@ or Ploi, self-hosted and built from scratch.
 ## Tech stack
 
 - **Laravel 13** + **PHP 8.4**
-- **SQLite** — app database (no separate server, avoids circular dependency with MySQL)
-- **MySQL** — monitored target service, NOT used by this app
+- **MySQL** — app database and the monitored target service (same instance)
 - **Livewire 3** — real-time UI, polling for live stats
 - **Tailwind CSS v4** — dark theme styling
 - **Alpine.js** — small interactive bits
 - **Chart.js** — CPU/RAM history and attack volume charts
 
 Do not use Vue, React, or Inertia. Keep it Livewire + Blade.
+
+The app uses MySQL for its own data despite also monitoring MySQL — they share the same instance.
 
 ---
 
@@ -171,13 +172,8 @@ Secrets required: `SSH_HOST`, `SSH_USER`, `SSH_KEY`.
 This dashboard can restart services, read logs, and see full attack data.
 It must never be publicly accessible.
 
-Protected by Nginx basic auth:
-```nginx
-auth_basic "Vitals";
-auth_basic_user_file /etc/nginx/.htpasswd;
-```
+Authentication uses **Google OAuth** via Laravel Socialite. Only the email in `GOOGLE_ALLOWED_EMAIL` (`.env`) can log in. All routes are protected by `RequireAuth` middleware except `/login` and the OAuth callback routes.
 
-The `.htpasswd` file is created manually on the server, never committed to git.
 Never pass user input directly to shell commands — only run a predefined set of known-safe commands.
 
 ---

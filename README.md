@@ -25,8 +25,7 @@ A self-hosted server monitoring and threat intelligence dashboard for a single L
 - **Livewire 3** — real-time UI with polling
 - **Tailwind CSS v4** — dark theme
 - **Alpine.js** — small interactive bits
-- **SQLite** — app database, no separate server needed
-- **MySQL** — monitored as a target service, not used by the app itself
+- **MySQL** — app database and monitored target service (same instance)
 - **Chart.js** — CPU/RAM history and attack volume charts
 
 ## Requirements
@@ -43,7 +42,7 @@ cd Vitals
 composer install
 cp .env.example .env
 php artisan key:generate
-touch database/database.sqlite
+# configure DB_DATABASE, DB_USERNAME, DB_PASSWORD in .env
 php artisan migrate
 npm install && npm run build
 ```
@@ -113,14 +112,9 @@ GitHub Actions secrets required: `SSH_HOST`, `SSH_USER`, `SSH_KEY`.
 
 ## Security
 
-This dashboard exposes sensitive server information. It is protected by Nginx basic auth in production — never expose it publicly.
+This dashboard exposes sensitive server information — never expose it publicly.
 
-```nginx
-auth_basic "Vitals";
-auth_basic_user_file /etc/nginx/.htpasswd;
-```
-
-The `.htpasswd` file is created manually on the server and never committed to git.
+Authentication is handled by **Google OAuth** via Laravel Socialite. Only the email address configured in `GOOGLE_ALLOWED_EMAIL` (in `.env`) can log in. All routes except `/login` and the OAuth callback are protected by the `RequireAuth` middleware.
 
 ## Server
 
