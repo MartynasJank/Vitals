@@ -54,6 +54,10 @@
                 <p class="text-2xl font-bold text-gray-100 font-mono">{{ number_format($cowrieCount) }}</p>
             </div>
             <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
+                <p class="text-xs text-gray-500 mb-1">Malware Files</p>
+                <p class="text-2xl font-bold {{ $malwareCount > 0 ? 'text-red-400' : 'text-gray-100' }} font-mono">{{ number_format($malwareCount) }}</p>
+            </div>
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
                 <p class="text-xs text-gray-500 mb-1">First / Last</p>
                 <p class="text-xs font-mono text-gray-300 mt-1">{{ $profile->first_seen?->format('Y-m-d') ?? '—' }}</p>
                 <p class="text-xs font-mono text-gray-500">{{ $profile->last_seen?->format('Y-m-d') ?? '—' }}</p>
@@ -81,6 +85,71 @@
                 </div>
             </div>
         </div>
+
+        {{-- Malware files --}}
+        @if($malwareCount > 0)
+            <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Malware Files Dropped</h2>
+            <div class="bg-gray-900 border border-red-900/40 rounded-lg divide-y divide-gray-800 mb-6">
+                @foreach($malwareFiles as $file)
+                    @php
+                        $hasDanger = $file->highlights->whereIn('category', ['wallet', 'credential', 'lateral', 'onion'])->isNotEmpty();
+                        $hasWarn = !$hasDanger && $file->highlights->whereIn('category', ['discord', 'telegram', 'mining', 'self_delete', 'anti_vm', 'persistence'])->isNotEmpty();
+                        $entropyColor = $file->entropy >= 7.5 ? 'text-red-400' : ($file->entropy >= 5.5 ? 'text-amber-400' : 'text-green-400');
+                    @endphp
+                    <div class="px-5 py-4">
+                        <div class="flex flex-wrap items-center gap-3 mb-2">
+                            <a href="{{ route('honeypot.malware') }}"
+                               class="text-xs font-mono text-gray-300 hover:text-gray-100 transition-colors">{{ substr($file->sha256, 0, 16) }}…</a>
+
+                            @if($file->malware_family)
+                                <span class="text-xs px-2 py-0.5 rounded bg-red-900/50 text-red-300 font-mono border border-red-800/50">{{ $file->malware_family }}</span>
+                            @endif
+
+                            @if($file->elf_arch)
+                                <span class="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-mono">{{ $file->elf_arch }}{{ $file->elf_bits ? ' · '.$file->elf_bits.'bit' : '' }}</span>
+                            @endif
+
+                            @if($file->entropy !== null)
+                                <span class="text-xs font-mono {{ $entropyColor }}">entropy {{ number_format($file->entropy, 1) }}</span>
+                            @endif
+
+                            @if($file->is_upx)
+                                <span class="text-xs px-2 py-0.5 rounded bg-purple-900/40 text-purple-400 font-mono">UPX</span>
+                            @endif
+
+                            @if($file->vt_status === 'found')
+                                <span class="text-xs font-mono {{ $file->vt_malicious > 0 ? 'text-red-400' : 'text-green-400' }}">
+                                    VT: {{ $file->vt_malicious }}/{{ $file->vt_total }}
+                                </span>
+                            @elseif($file->vt_status === 'pending')
+                                <span class="text-xs text-gray-600 font-mono">VT: pending</span>
+                            @endif
+
+                            <span class="text-xs text-gray-600 font-mono ml-auto">{{ number_format($file->file_size_bytes / 1024, 1) }} KB</span>
+                        </div>
+
+                        @if($file->highlights->isNotEmpty())
+                            <div class="flex flex-wrap gap-1.5 mt-2">
+                                @foreach($file->highlights->take(8) as $indicator)
+                                    @php
+                                        $color = match($indicator->category) {
+                                            'wallet' => 'text-yellow-400 bg-yellow-900/20',
+                                            'credential' => 'text-red-400 bg-red-900/20',
+                                            'lateral' => 'text-orange-400 bg-orange-900/20',
+                                            'onion' => 'text-purple-400 bg-purple-900/20',
+                                            'mining' => 'text-red-400 bg-red-900/20',
+                                            'discord', 'telegram' => 'text-sky-400 bg-sky-900/20',
+                                            default => 'text-gray-400 bg-gray-800',
+                                        };
+                                    @endphp
+                                    <span class="text-xs font-mono px-1.5 py-0.5 rounded {{ $color }}" title="{{ $indicator->category }}">{{ Str::limit($indicator->value, 40) }}</span>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        @endif
 
         {{-- Cowrie sessions --}}
         @if($cowrieCount > 0)
