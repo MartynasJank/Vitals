@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Middleware\MalwareViewerCsp;
 use App\Http\Middleware\RequireAuth;
 use App\Livewire\Dashboard;
 use App\Livewire\Databases;
 use App\Livewire\Honeypot;
 use App\Livewire\Logs;
+use App\Livewire\MalwareViewer;
 use App\Livewire\Resources;
 use App\Livewire\Security;
 use App\Livewire\Services;
@@ -28,4 +30,5 @@ Route::middleware(RequireAuth::class)->group(function () {
     Route::get('/databases', Databases::class)->name('databases');
     Route::get('/threat-intel', ThreatIntel::class)->name('threat-intel');
     Route::get('/honeypot', Honeypot::class)->name('honeypot');
+    Route::get('/honeypot/malware', MalwareViewer::class)->name('honeypot.malware')->middleware(MalwareViewerCsp::class);
 });

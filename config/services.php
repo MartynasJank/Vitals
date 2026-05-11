@@ -42,4 +42,8 @@ return [
         'allowed_email' => env('GOOGLE_ALLOWED_EMAIL'),
     ],
 
+    'virustotal' => [
+        'key' => env('VIRUSTOTAL_API_KEY'),
+    ],
+
 ];
