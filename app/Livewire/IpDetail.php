@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\MalwareFile;
 use App\Models\ThreatIp;
 use App\Services\ThreatIntelService;
 use Illuminate\View\View;
@@ -18,6 +19,11 @@ class IpDetail extends Component
     public int $nginxCount = 0;
 
     public int $cowrieCount = 0;
+
+    public int $malwareCount = 0;
+
+    /** @var array<int, MalwareFile> */
+    public array $malwareFiles = [];
 
     /** @var array<int, array{username: string, timestamp: string}> */
     public array $sshAttempts = [];
@@ -39,6 +45,8 @@ class IpDetail extends Component
             $this->sshCount = $data['ssh_count'];
             $this->nginxCount = $data['nginx_count'];
             $this->cowrieCount = $data['cowrie_count'];
+            $this->malwareCount = $data['malware_count'];
+            $this->malwareFiles = $data['malware_files'];
             $this->sshAttempts = $data['ssh_attempts'];
             $this->nginxHits = $data['nginx_hits'];
             $this->cowrieSessions = $data['cowrie_sessions'];

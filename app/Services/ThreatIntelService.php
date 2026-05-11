@@ -6,6 +6,7 @@ use App\Models\CowrieCommand;
 use App\Models\CowrieDownload;
 use App\Models\CowrieLogin;
 use App\Models\CowrieSession;
+use App\Models\MalwareFile;
 use App\Models\NginxHit;
 use App\Models\SshAttempt;
 use App\Models\ThreatIp;
@@ -885,14 +886,27 @@ class ThreatIntelService
             ])
             ->all();
 
+        $fileHashes = CowrieDownload::whereIn('cowrie_session_id', $sessionIds)
+            ->whereNotNull('file_hash')
+            ->pluck('file_hash')
+            ->unique()
+            ->values();
+
+        $malwareFiles = MalwareFile::with('highlights')
+            ->whereIn('sha256', $fileHashes)
+            ->get()
+            ->all();
+
         return [
             'profile' => $threatIp,
             'ssh_count' => SshAttempt::where('ip_id', $threatIp->id)->count(),
             'nginx_count' => NginxHit::where('ip_id', $threatIp->id)->count(),
             'cowrie_count' => count($sessionIds),
+            'malware_count' => count($malwareFiles),
             'ssh_attempts' => $sshAttempts,
             'nginx_hits' => $nginxHits,
             'cowrie_sessions' => $cowrieSessions,
+            'malware_files' => $malwareFiles,
         ];
     }
 }
