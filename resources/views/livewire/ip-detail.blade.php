@@ -98,7 +98,7 @@
                     @endphp
                     <div class="px-5 py-4">
                         <div class="flex flex-wrap items-center gap-3 mb-2">
-                            <a href="{{ route('honeypot.malware') }}"
+                            <a href="{{ route('honeypot.malware.detail', $file->sha256) }}"
                                class="text-xs font-mono text-gray-300 hover:text-gray-100 transition-colors">{{ substr($file->sha256, 0, 16) }}…</a>
 
                             @if($file->malware_family)
