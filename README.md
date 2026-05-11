@@ -112,9 +112,15 @@ GitHub Actions secrets required: `SSH_HOST`, `SSH_USER`, `SSH_KEY`.
 
 ## Security
 
-This dashboard exposes sensitive server information — never expose it publicly.
+Authentication is handled by **Google OAuth** via Laravel Socialite. Only the Google account matching `GOOGLE_ALLOWED_EMAIL` in `.env` can log in. All routes are protected by `RequireAuth` middleware except `/login` and the OAuth callback.
 
-Authentication is handled by **Google OAuth** via Laravel Socialite. Only the email address configured in `GOOGLE_ALLOWED_EMAIL` (in `.env`) can log in. All routes except `/login` and the OAuth callback are protected by the `RequireAuth` middleware.
+Required `.env` keys:
+```
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI="${APP_URL}/auth/callback"
+GOOGLE_ALLOWED_EMAIL=
+```
 
 ## Server
 
