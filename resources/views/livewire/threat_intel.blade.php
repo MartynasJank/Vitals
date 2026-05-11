@@ -18,6 +18,7 @@
          data-countries="{{ json_encode($topCountries) }}"
          data-isps="{{ json_encode($topIsps) }}"
          data-orgs="{{ json_encode($topOrgs) }}"
+         data-asns="{{ json_encode($topAsns) }}"
          data-origins="{{ json_encode($attackOrigins) }}">
     </div>
 
@@ -69,6 +70,39 @@
         </div>
     </div>
 
+    {{-- Anonymiser breakdown --}}
+    @if($anonymiserBreakdown['total'] > 0)
+        @php
+            $anon = $anonymiserBreakdown;
+            $pct = fn(int $n) => $anon['total'] > 0 ? round($n / $anon['total'] * 100, 1) : 0;
+        @endphp
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">Attacker Anonymisation</p>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">VPN</p>
+                    <p class="text-3xl font-bold text-purple-400 font-mono">{{ $pct($anon['vpn']) }}<span class="text-lg text-gray-500 ml-0.5">%</span></p>
+                    <p class="text-xs text-gray-600 mt-0.5 font-mono">{{ number_format($anon['vpn']) }} IPs</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">Proxy</p>
+                    <p class="text-3xl font-bold text-blue-400 font-mono">{{ $pct($anon['proxy']) }}<span class="text-lg text-gray-500 ml-0.5">%</span></p>
+                    <p class="text-xs text-gray-600 mt-0.5 font-mono">{{ number_format($anon['proxy']) }} IPs</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">Tor</p>
+                    <p class="text-3xl font-bold text-amber-400 font-mono">{{ $pct($anon['tor']) }}<span class="text-lg text-gray-500 ml-0.5">%</span></p>
+                    <p class="text-xs text-gray-600 mt-0.5 font-mono">{{ number_format($anon['tor']) }} IPs</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">No anonymiser</p>
+                    <p class="text-3xl font-bold text-gray-300 font-mono">{{ $pct($anon['clean']) }}<span class="text-lg text-gray-500 ml-0.5">%</span></p>
+                    <p class="text-xs text-gray-600 mt-0.5 font-mono">{{ number_format($anon['clean']) }} IPs</p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Attack origin map --}}
     <div class="bg-gray-900 border border-gray-800 rounded-lg mb-4 overflow-hidden">
         <div class="px-5 py-4 border-b border-gray-800">
@@ -83,8 +117,8 @@
         @endif
     </div>
 
-    {{-- Countries + ISPs + Orgs --}}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+    {{-- Countries + ISPs + Orgs + ASNs --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">Top Source Countries</p>
             @if(empty($topCountries))
@@ -92,6 +126,17 @@
             @else
                 <div class="h-72" wire:ignore>
                     <canvas id="countriesChart"></canvas>
+                </div>
+            @endif
+        </div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">Top ASNs</p>
+            @if(empty($topAsns))
+                <p class="text-sm text-gray-600 font-mono">No data yet</p>
+            @else
+                <div class="h-72" wire:ignore>
+                    <canvas id="asnsChart"></canvas>
                 </div>
             @endif
         </div>
@@ -214,7 +259,8 @@
             @foreach($crossSourceIps as $entry)
                 <div class="px-5 py-3">
                     <div class="flex flex-wrap items-center gap-2">
-                        <p class="text-sm font-mono text-amber-400">{{ $entry['ip'] }}</p>
+                        <a href="{{ route('ip-detail', $entry['ip']) }}"
+                           class="text-sm font-mono text-amber-400 hover:text-amber-300 hover:underline transition-colors">{{ $entry['ip'] }}</a>
 
                         @if($entry['country_code'])
                             <img src="https://flagcdn.com/16x12/{{ $entry['country_code'] }}.png"
@@ -304,6 +350,7 @@
             countries: JSON.parse(el.dataset.countries || '[]'),
             isps: JSON.parse(el.dataset.isps || '[]'),
             orgs: JSON.parse(el.dataset.orgs || '[]'),
+            asns: JSON.parse(el.dataset.asns || '[]'),
             origins: JSON.parse(el.dataset.origins || '[]'),
         };
     };
@@ -360,6 +407,16 @@
         data: {
             labels: d.isps.map(r => r.isp),
             datasets: [{ data: d.isps.map(r => r.count), backgroundColor: 'rgba(167,139,250,0.7)', borderRadius: 2 }],
+        },
+        options: barOpts(true),
+    }) : null;
+
+    const asnsEl = document.getElementById('asnsChart');
+    const asnsChart = asnsEl ? new Chart(asnsEl, {
+        type: 'bar',
+        data: {
+            labels: d.asns.map(r => r.asn + (r.org ? ' · ' + r.org.slice(0, 20) : '')),
+            datasets: [{ data: d.asns.map(r => r.count), backgroundColor: 'rgba(251,146,60,0.7)', borderRadius: 2 }],
         },
         options: barOpts(true),
     }) : null;
@@ -422,6 +479,12 @@
             ispsChart.data.labels = updated.isps.map(r => r.isp);
             ispsChart.data.datasets[0].data = updated.isps.map(r => r.count);
             ispsChart.update('none');
+        }
+
+        if (asnsChart) {
+            asnsChart.data.labels = updated.asns.map(r => r.asn + (r.org ? ' · ' + r.org.slice(0, 20) : ''));
+            asnsChart.data.datasets[0].data = updated.asns.map(r => r.count);
+            asnsChart.update('none');
         }
 
         if (attackMap) {
