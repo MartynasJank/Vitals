@@ -187,7 +187,14 @@
                         </div>
                         <div x-show="open" x-cloak class="mt-3 space-y-2">
                             @foreach($session['commands'] as $cmd)
-                                <p class="text-xs font-mono text-green-400 bg-gray-950 px-3 py-1.5 rounded">$ {{ $cmd }}</p>
+                                @php
+                                    $highlighted = preg_replace(
+                                        '/\b(\d{1,3}(?:\.\d{1,3}){3}(?:\/\d+)?|\d+)\b/',
+                                        '<span class="text-red-400">$1</span>',
+                                        e($cmd)
+                                    );
+                                @endphp
+                                <p class="text-xs font-mono text-green-400 bg-gray-950 px-3 py-1.5 rounded">{!! '$ '.$highlighted !!}</p>
                             @endforeach
                             @foreach($session['downloads'] as $url)
                                 <p class="text-xs font-mono text-amber-400 bg-gray-950 px-3 py-1.5 rounded truncate">↓ {{ $url }}</p>
