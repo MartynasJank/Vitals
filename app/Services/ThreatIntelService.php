@@ -435,7 +435,9 @@ class ThreatIntelService
         return ThreatIp::select(
             DB::raw('ROUND(lat, 1) as lat'),
             DB::raw('ROUND(lon, 1) as lon'),
-            DB::raw('SUM(total_hits) as count')
+            DB::raw('SUM(total_hits) as count'),
+            DB::raw('MAX(country) as country'),
+            DB::raw('MAX(country_code) as country_code')
         )
             ->whereNotNull('lat')
             ->whereNotNull('lon')
@@ -448,6 +450,8 @@ class ThreatIntelService
                 'lat' => (float) $row->lat,
                 'lon' => (float) $row->lon,
                 'count' => (int) $row->count,
+                'country' => $row->country,
+                'country_code' => $row->country_code,
             ])
             ->all();
     }
