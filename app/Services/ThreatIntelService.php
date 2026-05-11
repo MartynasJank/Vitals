@@ -831,4 +831,68 @@ class ThreatIntelService
             ])
             ->all();
     }
+
+    /**
+     * @return array{profile: ThreatIp, ssh_count: int, nginx_count: int, cowrie_count: int, ssh_attempts: array, nginx_hits: array, cowrie_sessions: array}|null
+     */
+    public function getIpProfile(string $ip): ?array
+    {
+        $threatIp = ThreatIp::where('ip', $ip)->first();
+        if (! $threatIp) {
+            return null;
+        }
+
+        $sshAttempts = SshAttempt::where('ip_id', $threatIp->id)
+            ->orderByDesc('timestamp')
+            ->limit(50)
+            ->get()
+            ->map(fn ($a) => [
+                'username' => $a->username,
+                'timestamp' => $a->timestamp?->format('Y-m-d H:i'),
+            ])
+            ->all();
+
+        $nginxHits = NginxHit::where('ip_id', $threatIp->id)
+            ->orderByDesc('timestamp')
+            ->limit(50)
+            ->get()
+            ->map(fn ($h) => [
+                'path' => $h->path,
+                'method' => $h->method,
+                'status_code' => $h->status_code,
+                'scan_type' => $h->scan_type,
+                'user_agent' => $h->user_agent,
+                'timestamp' => $h->timestamp?->format('Y-m-d H:i'),
+            ])
+            ->all();
+
+        $sessionIds = CowrieSession::where('ip_id', $threatIp->id)->pluck('id');
+
+        $cowrieSessions = CowrieSession::whereIn('id', $sessionIds)
+            ->with(['login', 'commands', 'downloads'])
+            ->orderByDesc('started_at')
+            ->limit(20)
+            ->get()
+            ->map(fn ($s) => [
+                'started_at' => $s->started_at?->format('Y-m-d H:i'),
+                'duration_seconds' => $s->duration_seconds,
+                'is_interesting' => $s->is_interesting,
+                'username' => $s->login?->username,
+                'password' => $s->login?->password,
+                'is_success' => $s->login?->is_success ?? false,
+                'commands' => $s->commands->map(fn ($c) => $c->input)->filter()->values()->all(),
+                'downloads' => $s->downloads->map(fn ($d) => $d->url)->filter()->values()->all(),
+            ])
+            ->all();
+
+        return [
+            'profile' => $threatIp,
+            'ssh_count' => SshAttempt::where('ip_id', $threatIp->id)->count(),
+            'nginx_count' => NginxHit::where('ip_id', $threatIp->id)->count(),
+            'cowrie_count' => count($sessionIds),
+            'ssh_attempts' => $sshAttempts,
+            'nginx_hits' => $nginxHits,
+            'cowrie_sessions' => $cowrieSessions,
+        ];
+    }
 }
