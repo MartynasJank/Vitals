@@ -19,7 +19,8 @@
             @foreach($bannedIps as $entry)
                 <div class="px-5 py-3.5 flex items-center justify-between">
                     <div class="flex items-center gap-6">
-                        <p class="text-sm font-mono text-gray-100">{{ $entry['ip'] }}</p>
+                        <a href="{{ route('ip-detail', $entry['ip']) }}"
+                           class="text-sm font-mono text-gray-100 hover:text-gray-300 hover:underline transition-colors">{{ $entry['ip'] }}</a>
                         <span class="text-xs text-gray-500 font-mono">{{ $entry['jail'] }}</span>
                     </div>
                     <button wire:click="unban('{{ $entry['ip'] }}', '{{ $entry['jail'] }}')"
@@ -44,7 +45,8 @@
             @foreach($sshAttempts as $entry)
                 <div class="px-4 sm:px-5 py-3 {{ $entry['total_hits'] > 3 ? 'bg-red-950/20' : '' }}">
                     <div class="flex flex-wrap items-center gap-2">
-                        <p class="text-sm font-mono {{ $entry['source'] === 'cowrie' ? 'text-amber-400' : 'text-red-400' }}">{{ $entry['ip'] }}</p>
+                        <a href="{{ route('ip-detail', $entry['ip']) }}"
+                           class="text-sm font-mono {{ $entry['source'] === 'cowrie' ? 'text-amber-400 hover:text-amber-300' : 'text-red-400 hover:text-red-300' }} hover:underline transition-colors">{{ $entry['ip'] }}</a>
                         <span class="text-gray-600">·</span>
                         <p class="text-sm font-mono text-gray-300">{{ $entry['user'] }}</p>
 
@@ -111,7 +113,8 @@
             @foreach($recentBotScans as $scan)
                 <div class="px-4 sm:px-5 py-3">
                     <div class="flex flex-wrap items-center gap-2">
-                        <p class="text-sm font-mono text-blue-400">{{ $scan['ip'] }}</p>
+                        <a href="{{ route('ip-detail', $scan['ip']) }}"
+                           class="text-sm font-mono text-blue-400 hover:text-blue-300 hover:underline transition-colors">{{ $scan['ip'] }}</a>
                         <span class="text-gray-600">·</span>
                         <span class="text-xs font-mono text-gray-500">{{ $scan['method'] }}</span>
                         <span class="text-xs font-mono text-gray-300 truncate max-w-xs">{{ $scan['path'] }}</span>

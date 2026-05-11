@@ -63,7 +63,12 @@
                                          class="w-4 h-3 object-cover rounded-sm opacity-80">
                                 @endif
 
-                                <span class="text-sm font-mono text-amber-400">{{ $session['ip'] ?? '—' }}</span>
+                                @if($session['ip'])
+                                    <a href="{{ route('ip-detail', $session['ip']) }}"
+                                       class="text-sm font-mono text-amber-400 hover:text-amber-300 hover:underline transition-colors">{{ $session['ip'] }}</a>
+                                @else
+                                    <span class="text-sm font-mono text-amber-400">—</span>
+                                @endif
 
                                 @if($session['country'])
                                     <span class="text-xs text-gray-500">{{ $session['country'] }}</span>
@@ -155,7 +160,13 @@
                                      class="w-4 h-3 object-cover rounded-sm opacity-80">
                             @endif
 
-                            <span class="text-sm font-mono text-amber-400">{{ $session['ip'] ?? '—' }}</span>
+                            @if($session['ip'] ?? null)
+                                <a href="{{ route('ip-detail', $session['ip']) }}"
+                                   class="text-sm font-mono text-amber-400 hover:text-amber-300 hover:underline transition-colors"
+                                   @click.stop>{{ $session['ip'] }}</a>
+                            @else
+                                <span class="text-sm font-mono text-amber-400">—</span>
+                            @endif
 
                             @if($session['country'])
                                 <span class="text-xs text-gray-500">{{ $session['country'] }}</span>
