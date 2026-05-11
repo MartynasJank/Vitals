@@ -153,10 +153,18 @@
 
         {{-- Cowrie sessions --}}
         @if($cowrieCount > 0)
-            <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Honeypot Sessions</h2>
-            <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800 mb-6">
+            <div x-data="{ onlyCmds: false }" class="mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Honeypot Sessions</h2>
+                <button @click="onlyCmds = !onlyCmds"
+                        :class="onlyCmds ? 'bg-gray-700 text-gray-200' : 'bg-gray-800 text-gray-500'"
+                        class="text-xs font-mono px-2.5 py-1 rounded transition-colors">
+                    has commands
+                </button>
+            </div>
+            <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800">
                 @foreach($cowrieSessions as $session)
-                    <div x-data="{ open: false }" class="px-5 py-3">
+                    <div x-data="{ open: false }" x-show="!onlyCmds || {{ count($session['commands']) > 0 ? 'true' : 'false' }}" class="px-5 py-3">
                         <div class="flex items-center justify-between gap-3 cursor-pointer" @click="open = !open">
                             <div class="flex flex-wrap items-center gap-2">
                                 <span class="text-xs font-mono text-gray-600">{{ $session['started_at'] }}</span>
@@ -202,6 +210,7 @@
                         </div>
                     </div>
                 @endforeach
+            </div>
             </div>
         @endif
 
