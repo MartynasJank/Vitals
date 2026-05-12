@@ -184,8 +184,15 @@
                                 @if(count($session['commands']) > 0)
                                     <span class="text-xs text-gray-600">{{ count($session['commands']) }} cmd{{ count($session['commands']) !== 1 ? 's' : '' }}</span>
                                 @endif
-                                @if(count($session['downloads']) > 0)
-                                    <span class="text-xs text-amber-600">{{ count($session['downloads']) }} download{{ count($session['downloads']) !== 1 ? 's' : '' }}</span>
+                                @php
+                                    $uploadCount = collect($session['downloads'])->where('type', 'upload')->count();
+                                    $downloadCount = collect($session['downloads'])->where('type', 'download')->count();
+                                @endphp
+                                @if($uploadCount > 0)
+                                    <span class="text-xs text-purple-500">{{ $uploadCount }} upload{{ $uploadCount !== 1 ? 's' : '' }}</span>
+                                @endif
+                                @if($downloadCount > 0)
+                                    <span class="text-xs text-amber-600">{{ $downloadCount }} download{{ $downloadCount !== 1 ? 's' : '' }}</span>
                                 @endif
                             </div>
                             <svg class="w-3.5 h-3.5 text-gray-600 flex-shrink-0 transition-transform" :class="{ 'rotate-90': open }"
