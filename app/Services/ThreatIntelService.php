@@ -882,7 +882,10 @@ class ThreatIntelService
                 'password' => $s->login?->password,
                 'is_success' => $s->login?->is_success ?? false,
                 'commands' => $s->commands->map(fn ($c) => $c->input)->filter()->values()->all(),
-                'downloads' => $s->downloads->map(fn ($d) => $d->url ?: ('scp upload: '.($d->filename ?? $d->file_hash)))->filter()->values()->all(),
+                'downloads' => $s->downloads->map(fn ($d) => [
+                    'type' => $d->url ? 'download' : 'upload',
+                    'label' => $d->url ?: ($d->filename ?? $d->file_hash),
+                ])->values()->all(),
             ])
             ->all();
 

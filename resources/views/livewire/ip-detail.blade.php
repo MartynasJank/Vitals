@@ -204,8 +204,12 @@
                                 @endphp
                                 <p class="text-xs font-mono text-green-400 bg-gray-950 px-3 py-1.5 rounded">{!! '$ '.$highlighted !!}</p>
                             @endforeach
-                            @foreach($session['downloads'] as $url)
-                                <p class="text-xs font-mono text-amber-400 bg-gray-950 px-3 py-1.5 rounded truncate">↓ {{ $url }}</p>
+                            @foreach($session['downloads'] as $dl)
+                                @if($dl['type'] === 'upload')
+                                    <p class="text-xs font-mono text-purple-400 bg-gray-950 px-3 py-1.5 rounded truncate">↑ {{ $dl['label'] }}</p>
+                                @else
+                                    <p class="text-xs font-mono text-amber-400 bg-gray-950 px-3 py-1.5 rounded truncate">↓ {{ $dl['label'] }}</p>
+                                @endif
                             @endforeach
                         </div>
                     </div>
