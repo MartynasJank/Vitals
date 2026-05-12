@@ -46,4 +46,8 @@ return [
         'key' => env('VIRUSTOTAL_API_KEY'),
     ],
 
+    'ipinfo' => [
+        'token' => env('IPINFO_TOKEN'),
+    ],
+
 ];
