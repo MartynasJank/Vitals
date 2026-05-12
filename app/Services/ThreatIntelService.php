@@ -80,6 +80,9 @@ class ThreatIntelService
         }
 
         $geo = $this->fetchGeoData($ip);
+        $privacy = $this->fetchPrivacyData($ip);
+
+        [$isVpn, $isProxy, $isTor] = $this->resolvePrivacyFlags($privacy, $geo);
 
         $record = ThreatIp::create([
             'ip' => $ip,
@@ -91,9 +94,9 @@ class ThreatIntelService
             'lat' => isset($geo['lat']) ? (float) $geo['lat'] : null,
             'lon' => isset($geo['lon']) ? (float) $geo['lon'] : null,
             'org' => $geo['org'] ?? null,
-            'is_proxy' => (bool) ($geo['proxy'] ?? false),
-            'is_vpn' => (bool) ($geo['proxy'] ?? false),
-            'is_tor' => false,
+            'is_proxy' => $isProxy,
+            'is_vpn' => $isVpn,
+            'is_tor' => $isTor,
             'total_hits' => 1,
             'first_seen' => now(),
             'last_seen' => now(),
@@ -138,6 +141,57 @@ class ThreatIntelService
         }
 
         return [];
+    }
+
+    /**
+     * Fetches VPN/proxy/Tor flags from ipinfo.io.
+     * Returns an empty array on failure or missing token — caller should fall back.
+     *
+     * @return array<string, mixed>
+     */
+    public function fetchPrivacyData(string $ip): array
+    {
+        $token = config('services.ipinfo.token');
+
+        if (! $token) {
+            return [];
+        }
+
+        try {
+            $response = Http::timeout(5)->get("https://ipinfo.io/{$ip}/privacy", [
+                'token' => $token,
+            ]);
+
+            if ($response->successful()) {
+                return $response->json() ?? [];
+            }
+        } catch (\Exception) {
+        }
+
+        return [];
+    }
+
+    /**
+     * Resolves is_vpn / is_proxy / is_tor from ipinfo.io privacy data.
+     * Falls back to ip-api.com's combined `proxy` boolean when ipinfo.io is unavailable,
+     * setting only is_proxy since the fallback cannot distinguish VPN from proxy.
+     *
+     * @param  array<string, mixed>  $privacy  ipinfo.io privacy response (may be empty)
+     * @param  array<string, mixed>  $geo  ip-api.com geo response
+     * @return array{bool, bool, bool} [is_vpn, is_proxy, is_tor]
+     */
+    public function resolvePrivacyFlags(array $privacy, array $geo): array
+    {
+        if (! empty($privacy)) {
+            return [
+                (bool) ($privacy['vpn'] ?? false),
+                (bool) ($privacy['proxy'] ?? false),
+                (bool) ($privacy['tor'] ?? false),
+            ];
+        }
+
+        // Fallback: ip-api.com `proxy` covers all anonymisers as one signal
+        return [false, (bool) ($geo['proxy'] ?? false), false];
     }
 
     /**
