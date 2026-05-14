@@ -888,6 +888,28 @@ class ThreatIntelService
     }
 
     /**
+     * @return array<int, array{vhost: string, count: int}>
+     */
+    public function getTopTargetedVhosts(string $range): array
+    {
+        $since = match ($range) {
+            '7d' => now('UTC')->subDays(7),
+            '30d' => now('UTC')->subDays(30),
+            default => now('UTC')->subHours(24),
+        };
+
+        return NginxHit::select('vhost', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('vhost')
+            ->where('timestamp', '>=', $since)
+            ->whereNotIn('ip_id', $this->ignoredIpIds())
+            ->groupBy('vhost')
+            ->orderByDesc('count')
+            ->get()
+            ->map(fn ($r) => ['vhost' => $r->vhost, 'count' => (int) $r->count])
+            ->all();
+    }
+
+    /**
      * @return array<int, array{ip: string, country: string|null, country_code: string|null, isp: string|null, ssh: int, nginx: int, total: int}>
      */
     public function getTopIpsByHits(string $range, int $limit = 10): array
