@@ -69,6 +69,7 @@ class ParseNginxLogs extends Command
 
                         NginxHit::create([
                             'ip_id' => $ipId,
+                            'vhost' => $hit['vhost'],
                             'path' => $hit['path'],
                             'method' => $hit['method'],
                             'status_code' => $hit['status_code'],
@@ -101,17 +102,18 @@ class ParseNginxLogs extends Command
     }
 
     /**
-     * @return array{ip: string, method: string, path: string, status_code: int, user_agent: string, scan_type: string, timestamp: string}|null
+     * @return array{ip: string, method: string, path: string, status_code: int, user_agent: string, scan_type: string, timestamp: string, vhost: string|null}|null
      */
     private function parseLine(string $line): ?array
     {
-        $pattern = '/^([\d.a-fA-F:]+) - \S+ \[([^\]]+)\] "(\S+) (\S+) [^"]*" (\d{3}) \d+ "([^"]*)" "([^"]*)"/';
+        $pattern = '/^([\d.a-fA-F:]+) - \S+ \[([^\]]+)\] "(\S+) (\S+) [^"]*" (\d{3}) \d+ "([^"]*)" "([^"]*)"(?: (\S+))?/';
 
         if (! preg_match($pattern, $line, $m)) {
             return null;
         }
 
         [, $ip, $timeStr, $method, $path, $status, $referer, $userAgent] = $m;
+        $vhost = isset($m[8]) && $m[8] !== '-' ? $m[8] : null;
 
         $statusCode = (int) $status;
 
@@ -146,6 +148,7 @@ class ParseNginxLogs extends Command
             'referer' => $referer !== '-' ? substr($referer, 0, 512) : null,
             'scan_type' => $scanType,
             'timestamp' => $timestamp,
+            'vhost' => $vhost,
         ];
     }
 }
