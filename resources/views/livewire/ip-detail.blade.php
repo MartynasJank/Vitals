@@ -87,7 +87,7 @@
         </div>
 
         {{-- Aggregated stats --}}
-        @if(!empty($topSshUsernames) || !empty($nginxScanTypes) || !empty($topNginxPaths) || array_sum($activityByHour) > 0)
+        @if(!empty($topSshUsernames) || !empty($nginxScanTypes) || !empty($topNginxPaths) || array_sum($activityByHour) > 0 || !empty($vhostBreakdown))
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
 
                 {{-- Top SSH usernames --}}
@@ -150,6 +150,29 @@
                                     </div>
                                     <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
                                         <div class="h-full bg-amber-500/50 rounded-full" style="width: {{ round($row['count'] / $maxNginx * 100) }}%"></div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Vhost breakdown --}}
+                @if(!empty($vhostBreakdown))
+                    <div class="bg-gray-900 border border-gray-800 rounded-lg">
+                        <div class="px-5 py-4 border-b border-gray-800">
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Targeted Sites</p>
+                        </div>
+                        @php $maxVhost = $vhostBreakdown[0]['count'] ?? 1; @endphp
+                        <div class="divide-y divide-gray-800">
+                            @foreach($vhostBreakdown as $row)
+                                <div class="px-5 py-2.5">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-sm font-mono text-gray-300">{{ $row['vhost'] }}</span>
+                                        <span class="text-xs font-mono text-amber-400">{{ number_format($row['count']) }}</span>
+                                    </div>
+                                    <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+                                        <div class="h-full bg-amber-500/50 rounded-full" style="width: {{ round($row['count'] / $maxVhost * 100) }}%"></div>
                                     </div>
                                 </div>
                             @endforeach
@@ -359,6 +382,9 @@
                                 <p class="text-sm font-mono text-gray-300 truncate">{{ $hit['path'] }}</p>
                                 @if($hit['scan_type'])
                                     <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 flex-shrink-0">{{ $hit['scan_type'] }}</span>
+                                @endif
+                                @if($hit['vhost'])
+                                    <span class="text-xs font-mono text-blue-400/70 flex-shrink-0">{{ $hit['vhost'] }}</span>
                                 @endif
                             </div>
                             <p class="text-xs font-mono text-gray-600 flex-shrink-0">{{ $hit['timestamp'] }}</p>
