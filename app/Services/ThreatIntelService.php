@@ -247,6 +247,7 @@ class ThreatIntelService
 
         $nginx = NginxHit::select(DB::raw("DATE_FORMAT(CONVERT_TZ(timestamp, '+00:00', '{$tz}'), '{$groupFormat}') as label, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
+            ->whereNotNull('scan_type')
             ->whereNotIn('ip_id', $ignoredIpIds)
             ->groupBy('label')
             ->pluck('count', 'label');
@@ -375,6 +376,7 @@ class ThreatIntelService
     {
         return NginxHit::select('path', 'scan_type', DB::raw('COUNT(*) as count'))
             ->whereNotNull('path')
+            ->whereNotNull('scan_type')
             ->whereNotIn('ip_id', $this->ignoredIpIds())
             ->groupBy('path', 'scan_type')
             ->orderByDesc('count')
@@ -412,7 +414,7 @@ class ThreatIntelService
         $sshIpIds = SshAttempt::select('ip_id')->whereNotIn('ip_id', $ignoredIpIds)->distinct()->pluck('ip_id');
         $cowrieIpIds = CowrieSession::select('ip_id')->whereNotIn('ip_id', $ignoredIpIds)->distinct()->pluck('ip_id');
         $allSshIpIds = $sshIpIds->merge($cowrieIpIds)->unique()->values();
-        $nginxIpIds = NginxHit::select('ip_id')->whereNotIn('ip_id', $ignoredIpIds)->distinct()->pluck('ip_id');
+        $nginxIpIds = NginxHit::select('ip_id')->whereNotNull('scan_type')->whereNotIn('ip_id', $ignoredIpIds)->distinct()->pluck('ip_id');
         $crossIds = $allSshIpIds->intersect($nginxIpIds)->values();
 
         if ($crossIds->isEmpty()) {
@@ -467,6 +469,7 @@ class ThreatIntelService
 
         $nginx = NginxHit::select(DB::raw("HOUR(CONVERT_TZ(timestamp, '+00:00', '{$tz}')) as hour, COUNT(*) as count"))
             ->where('timestamp', '>=', $since)
+            ->whereNotNull('scan_type')
             ->whereNotIn('ip_id', $ignoredIpIds)
             ->groupBy('hour')
             ->pluck('count', 'hour');
@@ -518,7 +521,7 @@ class ThreatIntelService
 
         return SshAttempt::where('timestamp', '>=', $since)->whereNotIn('ip_id', $ignoredIpIds)->count()
             + CowrieLogin::where('timestamp', '>=', $since)->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))->count()
-            + NginxHit::where('timestamp', '>=', $since)->whereNotIn('ip_id', $ignoredIpIds)->count();
+            + NginxHit::where('timestamp', '>=', $since)->whereNotNull('scan_type')->whereNotIn('ip_id', $ignoredIpIds)->count();
     }
 
     public function getTotalAttacksLastHour(): int
@@ -528,7 +531,7 @@ class ThreatIntelService
 
         return SshAttempt::where('timestamp', '>=', $since)->whereNotIn('ip_id', $ignoredIpIds)->count()
             + CowrieLogin::where('timestamp', '>=', $since)->whereHas('session', fn ($q) => $q->whereNotIn('ip_id', $ignoredIpIds))->count()
-            + NginxHit::where('timestamp', '>=', $since)->whereNotIn('ip_id', $ignoredIpIds)->count();
+            + NginxHit::where('timestamp', '>=', $since)->whereNotNull('scan_type')->whereNotIn('ip_id', $ignoredIpIds)->count();
     }
 
     /**
@@ -537,6 +540,7 @@ class ThreatIntelService
     public function getRecentNginxHits(int $limit = 20): array
     {
         return NginxHit::with('ip')
+            ->whereNotNull('scan_type')
             ->whereNotIn('ip_id', $this->ignoredIpIds())
             ->orderByDesc('timestamp')
             ->limit($limit)
@@ -979,6 +983,7 @@ class ThreatIntelService
 
         return NginxHit::select('vhost', DB::raw('COUNT(*) as count'))
             ->whereNotNull('vhost')
+            ->whereNotNull('scan_type')
             ->where('timestamp', '>=', $since)
             ->whereNotIn('ip_id', $this->ignoredIpIds())
             ->groupBy('vhost')
@@ -1015,6 +1020,7 @@ class ThreatIntelService
 
         $nginx = NginxHit::select('ip_id', DB::raw('COUNT(*) as count'))
             ->where('timestamp', '>=', $since)
+            ->whereNotNull('scan_type')
             ->whereNotIn('ip_id', $ignoredIpIds)
             ->groupBy('ip_id')
             ->pluck('count', 'ip_id');
@@ -1077,6 +1083,7 @@ class ThreatIntelService
 
         $nginxHits = NginxHit::with('ip')
             ->whereBetween('timestamp', [$startUtc, $endUtc])
+            ->whereNotNull('scan_type')
             ->whereNotIn('ip_id', $ignoredIpIds)
             ->orderBy('timestamp')
             ->limit(200)
