@@ -16,6 +16,7 @@ use App\Livewire\Security;
 use App\Livewire\Services;
 use App\Livewire\Sites;
 use App\Livewire\ThreatIntel;
+use App\Livewire\VhostDetail;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', fn () => view('auth.login'))->name('login');
@@ -33,6 +34,7 @@ Route::middleware(RequireAuth::class)->group(function () {
     Route::get('/databases', Databases::class)->name('databases');
     Route::get('/threat-intel', ThreatIntel::class)->name('threat-intel');
     Route::get('/threat-intel/ip/{ip}', IpDetail::class)->name('ip-detail');
+    Route::get('/threat-intel/vhost/{vhost}', VhostDetail::class)->name('threat-intel.vhost')->where('vhost', '.+');
     Route::get('/threat-intel/hour/{date}/{hour}', HourDetail::class)->name('threat-intel.hour')->where('hour', '[0-9]+');
     Route::get('/honeypot', Honeypot::class)->name('honeypot');
     Route::get('/honeypot/malware', MalwareViewer::class)->name('honeypot.malware')->middleware(MalwareViewerCsp::class);
