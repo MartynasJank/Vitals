@@ -1103,6 +1103,66 @@ class ThreatIntelService
             ->get()
             ->all();
 
+        $tz = now()->format('P');
+
+        $sshUsernames = SshAttempt::select('username', DB::raw('COUNT(*) as count'))
+            ->where('ip_id', $threatIp->id)
+            ->whereNotNull('username')
+            ->groupBy('username')
+            ->pluck('count', 'username');
+
+        $cowrieUsernames = CowrieLogin::select('username', DB::raw('COUNT(*) as count'))
+            ->whereIn('cowrie_session_id', $sessionIds)
+            ->whereNotNull('username')
+            ->groupBy('username')
+            ->pluck('count', 'username');
+
+        $topSshUsernames = $sshUsernames->mergeRecursive($cowrieUsernames)
+            ->map(fn ($v) => is_array($v) ? array_sum($v) : (int) $v)
+            ->sortDesc()
+            ->take(10)
+            ->map(fn ($count, $username) => ['username' => $username, 'count' => (int) $count])
+            ->values()
+            ->all();
+
+        $nginxScanTypes = NginxHit::select('scan_type', DB::raw('COUNT(*) as count'))
+            ->where('ip_id', $threatIp->id)
+            ->groupBy('scan_type')
+            ->orderByDesc('count')
+            ->get()
+            ->map(fn ($r) => ['scan_type' => $r->scan_type ?? 'other', 'count' => (int) $r->count])
+            ->all();
+
+        $topNginxPaths = NginxHit::select('path', 'scan_type', DB::raw('COUNT(*) as count'))
+            ->where('ip_id', $threatIp->id)
+            ->whereNotNull('path')
+            ->groupBy('path', 'scan_type')
+            ->orderByDesc('count')
+            ->limit(15)
+            ->get()
+            ->map(fn ($r) => ['path' => $r->path, 'scan_type' => $r->scan_type, 'count' => (int) $r->count])
+            ->all();
+
+        $sshByHour = SshAttempt::select(DB::raw("HOUR(CONVERT_TZ(timestamp, '+00:00', '{$tz}')) as hour, COUNT(*) as count"))
+            ->where('ip_id', $threatIp->id)
+            ->groupBy('hour')
+            ->pluck('count', 'hour');
+
+        $cowrieByHour = CowrieSession::select(DB::raw("HOUR(CONVERT_TZ(started_at, '+00:00', '{$tz}')) as hour, COUNT(*) as count"))
+            ->where('ip_id', $threatIp->id)
+            ->groupBy('hour')
+            ->pluck('count', 'hour');
+
+        $nginxByHour = NginxHit::select(DB::raw("HOUR(CONVERT_TZ(timestamp, '+00:00', '{$tz}')) as hour, COUNT(*) as count"))
+            ->where('ip_id', $threatIp->id)
+            ->groupBy('hour')
+            ->pluck('count', 'hour');
+
+        $activityByHour = array_fill(0, 24, 0);
+        for ($h = 0; $h < 24; $h++) {
+            $activityByHour[$h] = (int) ($sshByHour[$h] ?? 0) + (int) ($cowrieByHour[$h] ?? 0) + (int) ($nginxByHour[$h] ?? 0);
+        }
+
         return [
             'profile' => $threatIp,
             'ssh_count' => SshAttempt::where('ip_id', $threatIp->id)->count(),
@@ -1113,6 +1173,10 @@ class ThreatIntelService
             'nginx_hits' => $nginxHits,
             'cowrie_sessions' => $cowrieSessions,
             'malware_files' => $malwareFiles,
+            'top_ssh_usernames' => $topSshUsernames,
+            'nginx_scan_types' => $nginxScanTypes,
+            'top_nginx_paths' => $topNginxPaths,
+            'activity_by_hour' => $activityByHour,
         ];
     }
 }
