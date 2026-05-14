@@ -888,6 +888,85 @@ class ThreatIntelService
     }
 
     /**
+     * @return array{vhost: string, total_hits: int, unique_ips: int, first_hit: string|null, last_hit: string|null, scan_types: array, top_paths: array, top_ips: array, activity_by_hour: array<int, int>}
+     */
+    public function getVhostProfile(string $vhost): array
+    {
+        $ignoredIpIds = $this->ignoredIpIds();
+        $tz = now()->format('P');
+
+        $base = NginxHit::where('vhost', $vhost)->whereNotIn('ip_id', $ignoredIpIds);
+
+        $totalHits = (clone $base)->count();
+
+        $uniqueIps = (clone $base)->distinct('ip_id')->count('ip_id');
+
+        $firstHit = (clone $base)->min('timestamp');
+        $lastHit = (clone $base)->max('timestamp');
+
+        $scanTypes = (clone $base)
+            ->select('scan_type', DB::raw('COUNT(*) as count'))
+            ->groupBy('scan_type')
+            ->orderByDesc('count')
+            ->get()
+            ->map(fn ($r) => ['scan_type' => $r->scan_type ?? 'other', 'count' => (int) $r->count])
+            ->all();
+
+        $topPaths = (clone $base)
+            ->select('path', 'scan_type', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('path')
+            ->groupBy('path', 'scan_type')
+            ->orderByDesc('count')
+            ->limit(20)
+            ->get()
+            ->map(fn ($r) => ['path' => $r->path, 'scan_type' => $r->scan_type, 'count' => (int) $r->count])
+            ->all();
+
+        $topIpIds = (clone $base)
+            ->select('ip_id', DB::raw('COUNT(*) as count'))
+            ->groupBy('ip_id')
+            ->orderByDesc('count')
+            ->limit(15)
+            ->pluck('count', 'ip_id');
+
+        $topIps = ThreatIp::whereIn('id', $topIpIds->keys())
+            ->get()
+            ->keyBy('id')
+            ->map(fn ($ip) => [
+                'ip' => $ip->ip,
+                'country' => $ip->country,
+                'country_code' => $ip->country_code ? strtolower($ip->country_code) : null,
+                'isp' => $ip->isp,
+                'count' => (int) ($topIpIds[$ip->id] ?? 0),
+            ])
+            ->sortByDesc('count')
+            ->values()
+            ->all();
+
+        $byHour = (clone $base)
+            ->select(DB::raw("HOUR(CONVERT_TZ(timestamp, '+00:00', '{$tz}')) as hour, COUNT(*) as count"))
+            ->groupBy('hour')
+            ->pluck('count', 'hour');
+
+        $activityByHour = array_fill(0, 24, 0);
+        for ($h = 0; $h < 24; $h++) {
+            $activityByHour[$h] = (int) ($byHour[$h] ?? 0);
+        }
+
+        return [
+            'vhost' => $vhost,
+            'total_hits' => $totalHits,
+            'unique_ips' => $uniqueIps,
+            'first_hit' => $firstHit ? $this->localTime(Carbon::parse($firstHit))->format('Y-m-d H:i') : null,
+            'last_hit' => $lastHit ? $this->localTime(Carbon::parse($lastHit))->format('Y-m-d H:i') : null,
+            'scan_types' => $scanTypes,
+            'top_paths' => $topPaths,
+            'top_ips' => $topIps,
+            'activity_by_hour' => $activityByHour,
+        ];
+    }
+
+    /**
      * @return array<int, array{vhost: string, count: int}>
      */
     public function getTopTargetedVhosts(string $range): array
