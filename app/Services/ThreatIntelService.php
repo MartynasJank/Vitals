@@ -888,6 +888,64 @@ class ThreatIntelService
     }
 
     /**
+     * @return array<int, array{ip: string, country: string|null, country_code: string|null, isp: string|null, ssh: int, nginx: int, total: int}>
+     */
+    public function getTopIpsByHits(string $range, int $limit = 10): array
+    {
+        $since = match ($range) {
+            '7d' => now('UTC')->subDays(7),
+            '30d' => now('UTC')->subDays(30),
+            default => now('UTC')->subHours(24),
+        };
+
+        $ignoredIpIds = $this->ignoredIpIds();
+
+        $ssh = SshAttempt::select('ip_id', DB::raw('COUNT(*) as count'))
+            ->where('timestamp', '>=', $since)
+            ->whereNotIn('ip_id', $ignoredIpIds)
+            ->groupBy('ip_id')
+            ->pluck('count', 'ip_id');
+
+        $cowrie = CowrieSession::select('ip_id', DB::raw('COUNT(*) as count'))
+            ->where('started_at', '>=', $since)
+            ->whereNotIn('ip_id', $ignoredIpIds)
+            ->groupBy('ip_id')
+            ->pluck('count', 'ip_id');
+
+        $nginx = NginxHit::select('ip_id', DB::raw('COUNT(*) as count'))
+            ->where('timestamp', '>=', $since)
+            ->whereNotIn('ip_id', $ignoredIpIds)
+            ->groupBy('ip_id')
+            ->pluck('count', 'ip_id');
+
+        $ipIds = $ssh->keys()->merge($cowrie->keys())->merge($nginx->keys())->unique();
+
+        $totals = $ipIds->mapWithKeys(fn ($id) => [
+            $id => [
+                'ssh' => (int) ($ssh[$id] ?? 0) + (int) ($cowrie[$id] ?? 0),
+                'nginx' => (int) ($nginx[$id] ?? 0),
+                'total' => (int) ($ssh[$id] ?? 0) + (int) ($cowrie[$id] ?? 0) + (int) ($nginx[$id] ?? 0),
+            ],
+        ])->sortByDesc('total')->take($limit);
+
+        if ($totals->isEmpty()) {
+            return [];
+        }
+
+        $threatIps = ThreatIp::whereIn('id', $totals->keys())->get()->keyBy('id');
+
+        return $totals->map(fn ($counts, $id) => [
+            'ip' => $threatIps[$id]?->ip ?? '—',
+            'country' => $threatIps[$id]?->country,
+            'country_code' => $threatIps[$id]?->country_code ? strtolower($threatIps[$id]->country_code) : null,
+            'isp' => $threatIps[$id]?->isp,
+            'ssh' => $counts['ssh'],
+            'nginx' => $counts['nginx'],
+            'total' => $counts['total'],
+        ])->values()->all();
+    }
+
+    /**
      * @return array{date: string, hour: int, label: string, ssh_count: int, nginx_count: int, cowrie_count: int, unique_ips: int, ssh_attempts: array, nginx_hits: array, cowrie_sessions: array}
      */
     public function getHourlyBreakdown(string $date, int $hour): array

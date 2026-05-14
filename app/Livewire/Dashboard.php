@@ -48,6 +48,11 @@ class Dashboard extends Component
 
     public int $attacksLastHour = 0;
 
+    public string $topIpsRange = '24h';
+
+    /** @var array<int, array{ip: string, country: string|null, country_code: string|null, isp: string|null, ssh: int, nginx: int, total: int}> */
+    public array $topIps = [];
+
     #[Poll('5s')]
     public function refresh(): void
     {
@@ -101,6 +106,22 @@ class Dashboard extends Component
     public function mount(): void
     {
         $this->refresh();
+        $this->loadTopIps();
+    }
+
+    public function setTopIpsRange(string $range): void
+    {
+        $this->topIpsRange = $range;
+        $this->loadTopIps();
+    }
+
+    private function loadTopIps(): void
+    {
+        try {
+            $this->topIps = app(ThreatIntelService::class)->getTopIpsByHits($this->topIpsRange);
+        } catch (\Exception) {
+            $this->topIps = [];
+        }
     }
 
     public function render(): View

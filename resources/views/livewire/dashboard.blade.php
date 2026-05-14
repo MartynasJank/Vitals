@@ -156,6 +156,57 @@
         </div>
 
     </div>
+
+    {{-- Top IPs widget --}}
+    <div class="bg-gray-900 border border-gray-800 rounded-lg mt-4">
+        <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Top IPs by Hit Count</p>
+            <div class="flex gap-1">
+                @foreach(['24h' => '24h', '7d' => '7d', '30d' => '30d'] as $value => $label)
+                    <button wire:click="setTopIpsRange('{{ $value }}')"
+                            class="px-3 py-1 text-xs font-mono rounded transition-colors {{ $topIpsRange === $value ? 'bg-gray-700 text-gray-100' : 'text-gray-500 hover:text-gray-300' }}">
+                        {{ $label }}
+                    </button>
+                @endforeach
+            </div>
+        </div>
+        @if(empty($topIps))
+            <div class="p-5">
+                <p class="text-sm text-gray-600 font-mono">No attack data for this period.</p>
+            </div>
+        @else
+            <div class="divide-y divide-gray-800">
+                @foreach($topIps as $i => $entry)
+                    <div class="px-5 py-2.5 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="text-xs font-mono text-gray-600 w-4 text-right flex-shrink-0">{{ $i + 1 }}</span>
+                            <a href="{{ route('ip-detail', $entry['ip']) }}"
+                               class="text-sm font-mono text-red-400 hover:text-red-300 hover:underline transition-colors flex-shrink-0">{{ $entry['ip'] }}</a>
+                            @if($entry['country_code'])
+                                <img src="https://flagcdn.com/16x12/{{ $entry['country_code'] }}.png"
+                                     alt="{{ $entry['country'] ?? '' }}"
+                                     class="w-4 h-3 object-cover rounded-sm opacity-70 flex-shrink-0">
+                            @endif
+                            @if($entry['isp'])
+                                <span class="text-xs font-mono text-gray-600 truncate">{{ $entry['isp'] }}</span>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            @if($entry['ssh'] > 0)
+                                <span class="text-xs font-mono text-red-400/70">SSH {{ number_format($entry['ssh']) }}</span>
+                            @endif
+                            @if($entry['nginx'] > 0)
+                                <span class="text-xs font-mono text-amber-400/70">Nginx {{ number_format($entry['nginx']) }}</span>
+                            @endif
+                            <span class="text-sm font-mono font-bold {{ $entry['total'] > 10000 ? 'text-red-400' : ($entry['total'] > 1000 ? 'text-amber-400' : 'text-gray-300') }}">
+                                {{ number_format($entry['total']) }}
+                            </span>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
 </div>
 
 @script
