@@ -34,6 +34,18 @@ class IpDetail extends Component
     /** @var array<int, array{started_at: string, duration_seconds: float|null, is_interesting: bool, username: string|null, password: string|null, is_success: bool, commands: array, downloads: array}> */
     public array $cowrieSessions = [];
 
+    /** @var array<int, array{username: string, count: int}> */
+    public array $topSshUsernames = [];
+
+    /** @var array<int, array{scan_type: string, count: int}> */
+    public array $nginxScanTypes = [];
+
+    /** @var array<int, array{path: string, scan_type: string|null, count: int}> */
+    public array $topNginxPaths = [];
+
+    /** @var array<int, int> */
+    public array $activityByHour = [];
+
     public function mount(string $ip): void
     {
         $this->ip = $ip;
@@ -50,6 +62,10 @@ class IpDetail extends Component
             $this->sshAttempts = $data['ssh_attempts'];
             $this->nginxHits = $data['nginx_hits'];
             $this->cowrieSessions = $data['cowrie_sessions'];
+            $this->topSshUsernames = $data['top_ssh_usernames'];
+            $this->nginxScanTypes = $data['nginx_scan_types'];
+            $this->topNginxPaths = $data['top_nginx_paths'];
+            $this->activityByHour = $data['activity_by_hour'];
         }
     }
 
