@@ -49,6 +49,9 @@ class ThreatIntel extends Component
     /** @var array<int, array{asn: string, org: string|null, count: int}> */
     public array $topAsns = [];
 
+    /** @var array<int, array{vhost: string, count: int}> */
+    public array $topVhosts = [];
+
     public function mount(): void
     {
         $this->loadData();
@@ -73,6 +76,7 @@ class ThreatIntel extends Component
             $this->attackOrigins = $service->getAttackOrigins();
             $this->anonymiserBreakdown = $service->getAnonymiserBreakdown();
             $this->topAsns = $service->getTopAsns();
+            $this->topVhosts = $service->getTopTargetedVhosts($this->timeRange);
         } catch (\Exception) {
             // Degrade gracefully if the threat DB is not yet configured
         }
