@@ -1066,6 +1066,7 @@ class ThreatIntelService
                 'status_code' => $h->status_code,
                 'scan_type' => $h->scan_type,
                 'user_agent' => $h->user_agent,
+                'vhost' => $h->vhost,
                 'timestamp' => $h->timestamp?->format('Y-m-d H:i'),
             ])
             ->all();
@@ -1163,6 +1164,15 @@ class ThreatIntelService
             $activityByHour[$h] = (int) ($sshByHour[$h] ?? 0) + (int) ($cowrieByHour[$h] ?? 0) + (int) ($nginxByHour[$h] ?? 0);
         }
 
+        $vhostBreakdown = NginxHit::select('vhost', DB::raw('COUNT(*) as count'))
+            ->where('ip_id', $threatIp->id)
+            ->whereNotNull('vhost')
+            ->groupBy('vhost')
+            ->orderByDesc('count')
+            ->get()
+            ->map(fn ($r) => ['vhost' => $r->vhost, 'count' => (int) $r->count])
+            ->all();
+
         return [
             'profile' => $threatIp,
             'ssh_count' => SshAttempt::where('ip_id', $threatIp->id)->count(),
@@ -1177,6 +1187,7 @@ class ThreatIntelService
             'nginx_scan_types' => $nginxScanTypes,
             'top_nginx_paths' => $topNginxPaths,
             'activity_by_hour' => $activityByHour,
+            'vhost_breakdown' => $vhostBreakdown,
         ];
     }
 }

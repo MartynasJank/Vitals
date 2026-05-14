@@ -46,6 +46,9 @@ class IpDetail extends Component
     /** @var array<int, int> */
     public array $activityByHour = [];
 
+    /** @var array<int, array{vhost: string, count: int}> */
+    public array $vhostBreakdown = [];
+
     public function mount(string $ip): void
     {
         $this->ip = $ip;
@@ -66,6 +69,7 @@ class IpDetail extends Component
             $this->nginxScanTypes = $data['nginx_scan_types'];
             $this->topNginxPaths = $data['top_nginx_paths'];
             $this->activityByHour = $data['activity_by_hour'];
+            $this->vhostBreakdown = $data['vhost_breakdown'];
         }
     }
 
