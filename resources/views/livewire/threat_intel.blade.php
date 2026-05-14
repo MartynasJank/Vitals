@@ -166,6 +166,32 @@
         </div>
     </div>
 
+    {{-- Top targeted sites --}}
+    @if(!empty($topVhosts))
+        <div class="bg-gray-900 border border-gray-800 rounded-lg mb-4">
+            <div class="px-5 py-4 border-b border-gray-800">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Top Targeted Sites</p>
+            </div>
+            @php $maxVhost = $topVhosts[0]['count'] ?? 1; @endphp
+            <div class="divide-y divide-gray-800">
+                @foreach($topVhosts as $i => $row)
+                    <div class="px-5 py-3">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs font-mono text-gray-600 w-5 text-right">{{ $i + 1 }}</span>
+                                <span class="text-sm font-mono text-gray-300">{{ $row['vhost'] }}</span>
+                            </div>
+                            <span class="text-sm font-mono font-bold text-amber-400">{{ number_format($row['count']) }}</span>
+                        </div>
+                        <div class="ml-8 h-1 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-amber-500/50 rounded-full" style="width: {{ round($row['count'] / $maxVhost * 100) }}%"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     {{-- Tables row --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         {{-- Top SSH usernames --}}
