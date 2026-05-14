@@ -334,7 +334,8 @@
                                         <span class="text-xs text-gray-500 font-mono">{{ $dl['filename'] }}</span>
                                     @endif
                                     @if($dl['file_hash'])
-                                        <span class="text-xs text-gray-700 font-mono">{{ substr($dl['file_hash'], 0, 16) }}…</span>
+                                        <a href="{{ route('honeypot.malware.detail', $dl['file_hash']) }}"
+                                           class="text-xs font-mono text-gray-600 hover:text-gray-400 transition-colors">{{ substr($dl['file_hash'], 0, 16) }}…</a>
                                     @endif
                                 </div>
                             </div>
