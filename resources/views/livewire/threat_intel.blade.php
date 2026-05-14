@@ -179,7 +179,8 @@
                         <div class="flex items-center justify-between mb-1.5">
                             <div class="flex items-center gap-3">
                                 <span class="text-xs font-mono text-gray-600 w-5 text-right">{{ $i + 1 }}</span>
-                                <span class="text-sm font-mono text-gray-300">{{ $row['vhost'] }}</span>
+                                <a href="{{ route('threat-intel.vhost', $row['vhost']) }}"
+                                   class="text-sm font-mono text-gray-300 hover:text-amber-400 hover:underline transition-colors">{{ $row['vhost'] }}</a>
                             </div>
                             <span class="text-sm font-mono font-bold text-amber-400">{{ number_format($row['count']) }}</span>
                         </div>
