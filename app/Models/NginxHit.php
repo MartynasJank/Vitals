@@ -13,6 +13,7 @@ class NginxHit extends Model
 
     protected $fillable = [
         'ip_id',
+        'vhost',
         'path',
         'method',
         'status_code',
