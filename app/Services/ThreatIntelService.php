@@ -888,6 +888,97 @@ class ThreatIntelService
     }
 
     /**
+     * @return array{date: string, hour: int, label: string, ssh_count: int, nginx_count: int, cowrie_count: int, unique_ips: int, ssh_attempts: array, nginx_hits: array, cowrie_sessions: array}
+     */
+    public function getHourlyBreakdown(string $date, int $hour): array
+    {
+        $tz = config('app.timezone');
+        $start = Carbon::createFromFormat('Y-m-d H', "$date $hour", $tz)->startOfHour();
+        $end = $start->copy()->addHour();
+        $startUtc = $start->copy()->setTimezone('UTC');
+        $endUtc = $end->copy()->setTimezone('UTC');
+
+        $ignoredIpIds = $this->ignoredIpIds();
+
+        $sshAttempts = SshAttempt::with('ip')
+            ->whereBetween('timestamp', [$startUtc, $endUtc])
+            ->whereNotIn('ip_id', $ignoredIpIds)
+            ->orderBy('timestamp')
+            ->limit(200)
+            ->get()
+            ->map(fn ($a) => [
+                'timestamp' => $a->timestamp ? $this->localTime($a->timestamp)->format('H:i:s') : null,
+                'ip' => $a->ip?->ip ?? '—',
+                'country' => $a->ip?->country,
+                'country_code' => $a->ip?->country_code ? strtolower($a->ip->country_code) : null,
+                'username' => $a->username,
+                'isp' => $a->ip?->isp,
+            ])
+            ->all();
+
+        $nginxHits = NginxHit::with('ip')
+            ->whereBetween('timestamp', [$startUtc, $endUtc])
+            ->whereNotIn('ip_id', $ignoredIpIds)
+            ->orderBy('timestamp')
+            ->limit(200)
+            ->get()
+            ->map(fn ($h) => [
+                'timestamp' => $h->timestamp ? $this->localTime($h->timestamp)->format('H:i:s') : null,
+                'ip' => $h->ip?->ip ?? '—',
+                'country' => $h->ip?->country,
+                'country_code' => $h->ip?->country_code ? strtolower($h->ip->country_code) : null,
+                'method' => $h->method,
+                'path' => $h->path,
+                'status_code' => $h->status_code,
+                'scan_type' => $h->scan_type,
+            ])
+            ->all();
+
+        $cowrieSessions = CowrieSession::with(['ip', 'login', 'commands'])
+            ->whereBetween('started_at', [$startUtc, $endUtc])
+            ->whereNotIn('ip_id', $ignoredIpIds)
+            ->orderBy('started_at')
+            ->limit(100)
+            ->get()
+            ->map(fn ($s) => [
+                'session' => $s->session,
+                'ip' => $s->ip?->ip,
+                'country' => $s->ip?->country,
+                'country_code' => $s->ip?->country_code ? strtolower($s->ip->country_code) : null,
+                'isp' => $s->ip?->isp,
+                'username' => $s->login?->username,
+                'password' => $s->login?->password,
+                'duration_seconds' => $s->duration_seconds,
+                'started_at' => $s->started_at ? $this->localTime($s->started_at)->format('H:i:s') : null,
+                'commands' => $s->commands->pluck('input')->filter()->values()->all(),
+            ])
+            ->all();
+
+        $uniqueIps = collect($sshAttempts)->pluck('ip')
+            ->merge(collect($nginxHits)->pluck('ip'))
+            ->merge(collect($cowrieSessions)->pluck('ip'))
+            ->filter(fn ($ip) => $ip && $ip !== '—')
+            ->unique()
+            ->count();
+
+        $hourPadded = str_pad((string) $hour, 2, '0', STR_PAD_LEFT);
+        $nextHour = str_pad((string) ($hour + 1), 2, '0', STR_PAD_LEFT);
+
+        return [
+            'date' => $date,
+            'hour' => $hour,
+            'label' => "$date {$hourPadded}:00 – {$nextHour}:00",
+            'ssh_count' => count($sshAttempts),
+            'nginx_count' => count($nginxHits),
+            'cowrie_count' => count($cowrieSessions),
+            'unique_ips' => $uniqueIps,
+            'ssh_attempts' => $sshAttempts,
+            'nginx_hits' => $nginxHits,
+            'cowrie_sessions' => $cowrieSessions,
+        ];
+    }
+
+    /**
      * @return array{profile: ThreatIp, ssh_count: int, nginx_count: int, cowrie_count: int, malware_count: int, ssh_attempts: array, nginx_hits: array, cowrie_sessions: array, malware_files: array}|null
      */
     public function getIpProfile(string $ip): ?array

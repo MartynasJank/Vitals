@@ -19,7 +19,9 @@
          data-isps="{{ json_encode($topIsps) }}"
          data-orgs="{{ json_encode($topOrgs) }}"
          data-asns="{{ json_encode($topAsns) }}"
-         data-origins="{{ json_encode($attackOrigins) }}">
+         data-origins="{{ json_encode($attackOrigins) }}"
+         data-today="{{ now()->format('Y-m-d') }}"
+         data-range="{{ $timeRange }}">
     </div>
 
     {{-- Attack volume --}}
@@ -352,7 +354,13 @@
             orgs: JSON.parse(el.dataset.orgs || '[]'),
             asns: JSON.parse(el.dataset.asns || '[]'),
             origins: JSON.parse(el.dataset.origins || '[]'),
+            today: el.dataset.today || '',
+            range: el.dataset.range || '24h',
         };
+    };
+
+    const navigateToHour = (date, hour) => {
+        window.location.href = `/threat-intel/hour/${date}/${hour}`;
     };
 
     const d = readData();
@@ -367,7 +375,18 @@
                 { label: 'Nginx', data: d.volume.map(r => r.nginx), borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.08)', fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5 },
             ],
         },
-        options: { ...chartOpts, plugins: { legend: { display: false }, tooltip: { ...tooltipDefaults, mode: 'index', intersect: false } } },
+        options: {
+            ...chartOpts,
+            plugins: { legend: { display: false }, tooltip: { ...tooltipDefaults, mode: 'index', intersect: false } },
+            onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
+            onClick: (event, elements) => {
+                if (!elements.length) { return; }
+                const label = volumeChart.data.labels[elements[0].index];
+                const match = label.match(/^(\d{4}-\d{2}-\d{2}) (\d+):/);
+                if (!match) { return; }
+                navigateToHour(match[1], parseInt(match[2]));
+            },
+        },
         plugins: [crosshairPlugin],
     }) : null;
 
@@ -378,7 +397,16 @@
             labels: Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')),
             datasets: [{ data: d.heatmap, backgroundColor: 'rgba(248,113,113,0.6)', borderRadius: 2 }],
         },
-        options: barOpts(false),
+        options: {
+            ...barOpts(false),
+            onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
+            onClick: (event, elements) => {
+                if (!elements.length) { return; }
+                const hour = elements[0].index;
+                const today = document.getElementById('threatChartData').dataset.today;
+                navigateToHour(today, hour);
+            },
+        },
     }) : null;
 
     const countriesEl = document.getElementById('countriesChart');
