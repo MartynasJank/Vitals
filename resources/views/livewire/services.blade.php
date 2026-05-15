@@ -10,7 +10,7 @@
     {{-- System Services --}}
     <div class="space-y-3 mb-10">
         @foreach($services as $key => $service)
-            <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden" x-data="{ journal: false }">
+            <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden" x-data="{ journal: false, stats: false }">
 
                 {{-- Main row --}}
                 <div class="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -81,6 +81,12 @@
                             </p>
                         </div>
 
+                        <button @click="stats = !stats"
+                                class="text-xs font-mono text-gray-600 hover:text-gray-400 transition-colors"
+                                :class="{ 'text-gray-400': stats }">
+                            stats
+                        </button>
+
                         @if(!empty($service['journal']))
                             <button @click="journal = !journal"
                                     class="text-xs font-mono text-gray-600 hover:text-gray-400 transition-colors"
@@ -95,6 +101,116 @@
                             restart
                         </button>
                     </div>
+                </div>
+
+                {{-- Stats panel --}}
+                <div x-show="stats" x-cloak class="border-t border-gray-800 bg-gray-950 px-5 py-4">
+                    @if($key === 'nginx')
+                        @if(!empty($service['details']))
+                            <div class="grid grid-cols-3 sm:grid-cols-7 gap-4">
+                                @foreach(['connections' => 'Active', 'accepted' => 'Accepted', 'handled' => 'Handled', 'requests' => 'Requests', 'reading' => 'Reading', 'writing' => 'Writing', 'waiting' => 'Waiting'] as $field => $label)
+                                    <div>
+                                        <p class="text-xs text-gray-600 mb-1">{{ $label }}</p>
+                                        <p class="text-sm font-mono text-gray-300">{{ number_format($service['details'][$field]) }}</p>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-xs text-gray-600 font-mono">stub_status not configured</p>
+                        @endif
+
+                    @elseif($key === 'mysql')
+                        @if(!empty($service['details']))
+                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                                <div>
+                                    <p class="text-xs text-gray-600 mb-1">Connections</p>
+                                    <p class="text-sm font-mono text-gray-300">{{ $service['details']['connections'] }} / {{ $service['details']['max_connections'] }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-600 mb-1">Threads Running</p>
+                                    <p class="text-sm font-mono text-gray-300">{{ $service['details']['threads_running'] }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-600 mb-1">Slow Queries</p>
+                                    <p class="text-sm font-mono {{ $service['details']['slow_queries'] > 0 ? 'text-amber-400' : 'text-gray-300' }}">{{ number_format($service['details']['slow_queries']) }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-600 mb-1">Total Queries</p>
+                                    <p class="text-sm font-mono text-gray-300">{{ number_format($service['details']['queries']) }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-600 mb-1">Buffer Hit Rate</p>
+                                    <p class="text-sm font-mono text-gray-300">{{ $service['details']['buffer_hit_rate'] }}</p>
+                                </div>
+                            </div>
+                        @endif
+
+                    @elseif($key === 'php8.4-fpm')
+                        @if(!empty($service['fpm']))
+                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                                <div>
+                                    <p class="text-xs text-gray-600 mb-1">Active</p>
+                                    <p class="text-sm font-mono text-gray-300">{{ $service['fpm']['active'] }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-600 mb-1">Idle</p>
+                                    <p class="text-sm font-mono text-gray-300">{{ $service['fpm']['idle'] }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-600 mb-1">Total</p>
+                                    <p class="text-sm font-mono text-gray-300">{{ $service['fpm']['total'] }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-600 mb-1">Slow Requests</p>
+                                    <p class="text-sm font-mono {{ $service['fpm']['slow'] > 0 ? 'text-amber-400' : 'text-gray-300' }}">{{ $service['fpm']['slow'] }}</p>
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-xs text-gray-600 font-mono">pm.status_path not configured</p>
+                        @endif
+
+                    @elseif($key === 'fail2ban')
+                        @if(!empty($service['details']))
+                            <div class="space-y-3">
+                                @foreach($service['details'] as $jail => $ips)
+                                    <div>
+                                        <p class="text-xs text-gray-500 font-mono mb-1.5">{{ $jail }} <span class="text-gray-600">({{ count($ips) }})</span></p>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            @foreach($ips as $ip)
+                                                <a href="{{ route('ip-detail', $ip) }}"
+                                                   class="text-xs font-mono px-1.5 py-0.5 rounded bg-red-900/20 text-red-400 hover:text-red-300 transition-colors">{{ $ip }}</a>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-xs text-gray-600 font-mono">No banned IPs</p>
+                        @endif
+
+                    @elseif($key === 'cowrie')
+                        @if(!empty($service['details']))
+                            <div class="space-y-1.5">
+                                @foreach($service['details'] as $session)
+                                    <div class="flex items-center gap-3">
+                                        @if($session['active'])
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0"></span>
+                                        @else
+                                            <span class="w-1.5 h-1.5 rounded-full bg-gray-700 flex-shrink-0"></span>
+                                        @endif
+                                        <a href="{{ route('ip-detail', $session['ip']) }}"
+                                           class="text-xs font-mono text-amber-400 hover:text-amber-300 transition-colors w-36 flex-shrink-0">{{ $session['ip'] }}</a>
+                                        @if($session['country'])
+                                            <span class="text-xs text-gray-600">{{ $session['country'] }}</span>
+                                        @endif
+                                        <span class="text-xs text-gray-700 font-mono">{{ $session['started_at'] }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-xs text-gray-600 font-mono">No recent sessions</p>
+                        @endif
+                    @endif
                 </div>
 
                 {{-- Journal entries --}}
