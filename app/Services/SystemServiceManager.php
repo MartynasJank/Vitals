@@ -89,7 +89,7 @@ class SystemServiceManager
             return ['running' => false, 'uptime' => null, 'memory' => null];
         }
 
-        $pid = (int) trim((string) file_get_contents($pidFile));
+        $pid = (int) trim((string) @file_get_contents($pidFile));
 
         if ($pid <= 0 || ! file_exists("/proc/{$pid}")) {
             return ['running' => false, 'uptime' => null, 'memory' => null];
