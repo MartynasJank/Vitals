@@ -169,7 +169,7 @@
             @foreach($successfulLogins as $entry)
                 <div class="px-4 sm:px-5 py-3">
                     <div class="flex items-center gap-3">
-                        <p class="text-sm font-mono text-green-400">{{ $entry['ip'] }}</p>
+                        <a href="{{ route('ip-detail', $entry['ip']) }}" class="text-sm font-mono text-green-400 hover:underline">{{ $entry['ip'] }}</a>
                         <span class="text-gray-600">·</span>
                         <p class="text-sm font-mono text-gray-300">{{ $entry['user'] }}</p>
                     </div>

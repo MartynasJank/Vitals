@@ -168,7 +168,7 @@
                             @foreach($vhostBreakdown as $row)
                                 <div class="px-5 py-2.5">
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-sm font-mono text-gray-300">{{ $row['vhost'] }}</span>
+                                        <a href="{{ route('threat-intel.vhost', $row['vhost']) }}" class="text-sm font-mono text-gray-300 hover:underline">{{ $row['vhost'] }}</a>
                                         <span class="text-xs font-mono text-amber-400">{{ number_format($row['count']) }}</span>
                                     </div>
                                     <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
