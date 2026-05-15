@@ -13,7 +13,18 @@
     @else
         <div class="space-y-3">
             @foreach($sites as $site)
-                <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+                @php
+                    $sslWarning = isset($site['ssl_days']) && $site['ssl_days'] !== null && $site['ssl_days'] < 14;
+                    $sslCaution = isset($site['ssl_days']) && $site['ssl_days'] !== null && $site['ssl_days'] < 30;
+                    $borderClass = $sslWarning ? 'border-red-900/60' : ($sslCaution ? 'border-amber-900/50' : 'border-gray-800');
+                    $msColor = match(true) {
+                        ($site['response_ms'] ?? null) === null => 'text-gray-500',
+                        $site['response_ms'] < 200 => 'text-green-400',
+                        $site['response_ms'] < 500 => 'text-amber-400',
+                        default => 'text-red-400',
+                    };
+                @endphp
+                <div class="bg-gray-900 border {{ $borderClass }} rounded-lg overflow-hidden">
 
                     {{-- Site row (clickable to expand) --}}
                     <div wire:click="selectSite('{{ $site['url'] }}')"
@@ -23,18 +34,33 @@
                             <div class="min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <p class="text-sm font-medium text-gray-100">{{ $site['name'] }}</p>
+                                    @if(isset($site['uptime_24h']) && $site['uptime_24h'] < 100)
+                                        <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400">{{ $site['uptime_24h'] }}%</span>
+                                    @elseif(isset($site['uptime_24h']))
+                                        <span class="text-xs font-mono text-gray-600">{{ $site['uptime_24h'] }}%</span>
+                                    @endif
                                     @if(isset($site['ssl_days']))
                                         @if($site['ssl_days'] === null)
                                             <span class="text-xs font-mono text-gray-600">no SSL</span>
                                         @else
                                             <span class="text-xs font-mono px-1.5 py-0.5 rounded
-                                                {{ $site['ssl_days'] < 14 ? 'text-red-400 bg-red-950/50' : ($site['ssl_days'] < 30 ? 'text-amber-400 bg-amber-950/50' : 'text-green-400 bg-green-950/50') }}">
+                                                {{ $sslWarning ? 'text-red-400 bg-red-950/50' : ($sslCaution ? 'text-amber-400 bg-amber-950/50' : 'text-green-400 bg-green-950/50') }}">
                                                 SSL {{ $site['ssl_days'] }}d
                                             </span>
                                         @endif
                                     @endif
                                 </div>
-                                <p class="text-xs text-gray-500 font-mono truncate">{{ $site['url'] }}</p>
+                                <div class="flex items-center gap-3 mt-1">
+                                    <p class="text-xs text-gray-500 font-mono truncate">{{ $site['url'] }}</p>
+                                    {{-- Mini status bar --}}
+                                    @if(!empty($site['recent_statuses']))
+                                        <div class="flex gap-px flex-shrink-0">
+                                            @foreach($site['recent_statuses'] as $s)
+                                                <div class="w-1.5 h-3.5 rounded-sm {{ $s === 'up' ? 'bg-green-500/60' : 'bg-red-500' }}"></div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
                         </div>
 
@@ -51,7 +77,7 @@
 
                             <div class="text-right hidden sm:block">
                                 <p class="text-xs text-gray-500">Response</p>
-                                <p class="text-sm text-gray-300">
+                                <p class="text-sm font-mono {{ $msColor }}">
                                     {{ $site['response_ms'] ? $site['response_ms'].'ms' : '—' }}
                                 </p>
                             </div>
@@ -71,6 +97,36 @@
                     {{-- Detail panel --}}
                     @if($selectedSite === $site['url'])
                         <div class="border-t border-gray-800 p-4 sm:p-5" wire:loading.class="opacity-50">
+
+                            {{-- 24h stats row --}}
+                            @if(isset($site['avg_ms']) || isset($site['check_count']))
+                                <div class="flex flex-wrap gap-6 mb-5">
+                                    @if(isset($site['avg_ms']) && $site['avg_ms'] !== null)
+                                        <div>
+                                            <p class="text-xs text-gray-600 mb-0.5">Avg (24h)</p>
+                                            <p class="text-sm font-mono text-gray-300">{{ $site['avg_ms'] }}ms</p>
+                                        </div>
+                                    @endif
+                                    @if(isset($site['max_ms']) && $site['max_ms'] !== null)
+                                        <div>
+                                            <p class="text-xs text-gray-600 mb-0.5">Slowest (24h)</p>
+                                            <p class="text-sm font-mono {{ $site['max_ms'] >= 500 ? 'text-red-400' : ($site['max_ms'] >= 200 ? 'text-amber-400' : 'text-gray-300') }}">{{ $site['max_ms'] }}ms</p>
+                                        </div>
+                                    @endif
+                                    @if(!empty($site['last_down_at']))
+                                        <div>
+                                            <p class="text-xs text-gray-600 mb-0.5">Last down</p>
+                                            <p class="text-sm font-mono text-amber-400">{{ $site['last_down_at'] }}</p>
+                                        </div>
+                                    @endif
+                                    @if(isset($site['check_count']) && $site['check_count'] > 0)
+                                        <div>
+                                            <p class="text-xs text-gray-600 mb-0.5">Total checks</p>
+                                            <p class="text-sm font-mono text-gray-500">{{ number_format($site['check_count']) }}</p>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
 
                             {{-- Response time chart --}}
                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Response Time History</p>
