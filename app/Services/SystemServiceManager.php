@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use Carbon\Carbon;
-
 class SystemServiceManager
 {
     /** @var array<string, string> */
@@ -186,7 +184,7 @@ class SystemServiceManager
 
         $workers = [];
         foreach (array_filter(explode("\n", trim($output))) as $line) {
-            if (preg_match('/^(\d+)\s+.*artisan queue:work(.*)$/', $line, $m)) {
+            if (preg_match('/^(\d+)\s+\S*php\S*\s.*artisan queue:work(.*)$/', $line, $m)) {
                 $workers[] = ['pid' => (int) $m[1], 'options' => trim($m[2])];
             }
         }
@@ -202,7 +200,7 @@ class SystemServiceManager
             return null;
         }
 
-        $diff = now()->diffInSeconds(Carbon::parse($ts));
+        $diff = time() - (int) $ts;
 
         return $diff < 120 ? $diff.'s ago' : round($diff / 60).'m ago';
     }
