@@ -20,6 +20,15 @@ class SystemServiceManager
         ],
     ];
 
+    /** @var array<string, array{ports: int[], process: string}> */
+    private array $serviceMeta = [
+        'nginx' => ['ports' => [80, 443], 'process' => 'nginx'],
+        'mysql' => ['ports' => [3306],     'process' => 'mysqld'],
+        'php8.4-fpm' => ['ports' => [],         'process' => 'php-fpm'],
+        'fail2ban' => ['ports' => [],         'process' => 'fail2ban'],
+        'cowrie' => ['ports' => [2222],     'process' => 'twistd'],
+    ];
+
     /**
      * @return array<string, array{label: string, running: bool, restarting: bool, uptime: string|null, memory: string|null}>
      */
@@ -36,13 +45,14 @@ class SystemServiceManager
                 $restarting = false;
             }
 
-            $result[$service] = array_merge(['label' => $label, 'restarting' => $restarting], $status);
+            $result[$service] = array_merge(['label' => $label, 'restarting' => $restarting], $status, $this->getExtra($service));
         }
 
         foreach ($this->processServices as $key => $config) {
             $result[$key] = array_merge(
                 ['label' => $config['label'], 'restarting' => false],
-                $this->getProcessStatus($config['process_pattern'])
+                $this->getProcessStatus($config['process_pattern']),
+                $this->getExtra($key)
             );
         }
 
@@ -104,6 +114,38 @@ class SystemServiceManager
         }
 
         return ['running' => true, 'uptime' => $uptime, 'memory' => $memory];
+    }
+
+    /**
+     * @return array{workers: int|null, ports: int[], journal: string[]}
+     */
+    private function getExtra(string $key): array
+    {
+        $meta = $this->serviceMeta[$key] ?? null;
+
+        return [
+            'workers' => $meta ? $this->getWorkerCount($meta['process']) : null,
+            'ports' => $meta['ports'] ?? [],
+            'journal' => $this->getRecentJournal($key),
+        ];
+    }
+
+    private function getWorkerCount(string $processName): int
+    {
+        return (int) trim((string) shell_exec('pgrep -c -x '.escapeshellarg($processName).' 2>/dev/null'));
+    }
+
+    /** @return string[] */
+    public function getRecentJournal(string $service): array
+    {
+        $unit = $service === 'cowrie' ? 'cowrie' : $service;
+        $output = shell_exec('journalctl -u '.escapeshellarg($unit).' -n 8 --no-pager --output=short-iso 2>/dev/null');
+
+        if (! $output) {
+            return [];
+        }
+
+        return array_values(array_filter(explode("\n", trim($output))));
     }
 
     public function restart(string $service): bool
