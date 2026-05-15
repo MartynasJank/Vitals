@@ -100,6 +100,96 @@ class DatabaseService
         ];
     }
 
+    /**
+     * @return array<int, array{id: int, user: string, db: string|null, command: string, time: int, state: string|null, info: string|null}>
+     */
+    public function getProcessList(): array
+    {
+        $rows = DB::select("
+            SELECT ID, USER, DB, COMMAND, TIME, STATE, INFO
+            FROM information_schema.PROCESSLIST
+            WHERE COMMAND != 'Sleep'
+            ORDER BY TIME DESC
+        ");
+
+        return array_map(fn ($row) => [
+            'id' => (int) $row->ID,
+            'user' => $row->USER,
+            'db' => $row->DB,
+            'command' => $row->COMMAND,
+            'time' => (int) $row->TIME,
+            'state' => $row->STATE,
+            'info' => $row->INFO,
+        ], $rows);
+    }
+
+    /**
+     * @return array<int, array{query: string, schema: string|null, count: int, avg_ms: float, max_ms: float, total_ms: float}>
+     */
+    public function getSlowQueries(int $limit = 15): array
+    {
+        try {
+            $rows = DB::select('
+                SELECT
+                    DIGEST_TEXT AS query,
+                    SCHEMA_NAME AS schema_name,
+                    COUNT_STAR AS count,
+                    ROUND(AVG_TIMER_WAIT / 1000000000, 2) AS avg_ms,
+                    ROUND(MAX_TIMER_WAIT / 1000000000, 2) AS max_ms,
+                    ROUND(SUM_TIMER_WAIT / 1000000000, 2) AS total_ms
+                FROM performance_schema.events_statements_summary_by_digest
+                WHERE DIGEST_TEXT IS NOT NULL
+                ORDER BY AVG_TIMER_WAIT DESC
+                LIMIT ?
+            ', [$limit]);
+
+            return array_map(fn ($row) => [
+                'query' => $row->query,
+                'schema' => $row->schema_name,
+                'count' => (int) $row->count,
+                'avg_ms' => (float) $row->avg_ms,
+                'max_ms' => (float) $row->max_ms,
+                'total_ms' => (float) $row->total_ms,
+            ], $rows);
+        } catch (\Exception) {
+            return [];
+        }
+    }
+
+    /**
+     * @return array{active_transactions: int, lock_waits: int, history_list_length: int|null, last_deadlock: string|null}
+     */
+    public function getInnoDbStatus(): array
+    {
+        $activeTrx = (int) (DB::selectOne('SELECT COUNT(*) AS count FROM information_schema.INNODB_TRX')->count ?? 0);
+
+        try {
+            $lockWaits = (int) (DB::selectOne('SELECT COUNT(*) AS count FROM performance_schema.data_lock_waits')->count ?? 0);
+        } catch (\Exception) {
+            $lockWaits = 0;
+        }
+
+        $statusRow = DB::selectOne('SHOW ENGINE INNODB STATUS');
+        $raw = $statusRow->Status ?? '';
+
+        $historyListLength = null;
+        if (preg_match('/History list length (\d+)/', $raw, $m)) {
+            $historyListLength = (int) $m[1];
+        }
+
+        $lastDeadlock = null;
+        if (preg_match('/LATEST DETECTED DEADLOCK\n-+\n(.*?)(?=\n-{4,})/s', $raw, $m)) {
+            $lastDeadlock = trim($m[1]);
+        }
+
+        return [
+            'active_transactions' => $activeTrx,
+            'lock_waits' => $lockWaits,
+            'history_list_length' => $historyListLength,
+            'last_deadlock' => $lastDeadlock,
+        ];
+    }
+
     private function formatUptime(int $seconds): string
     {
         if ($seconds < 3600) {
