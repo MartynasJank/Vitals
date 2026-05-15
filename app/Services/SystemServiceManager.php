@@ -12,11 +12,11 @@ class SystemServiceManager
         'fail2ban' => 'Fail2ban',
     ];
 
-    /** @var array<string, array{label: string, pid_file: string}> */
+    /** @var array<string, array{label: string, process_pattern: string}> */
     private array $processServices = [
         'cowrie' => [
             'label' => 'Cowrie Honeypot',
-            'pid_file' => '/home/cowrie/cowrie/var/run/cowrie.pid',
+            'process_pattern' => 'twistd.*cowrie',
         ],
     ];
 
@@ -42,7 +42,7 @@ class SystemServiceManager
         foreach ($this->processServices as $key => $config) {
             $result[$key] = array_merge(
                 ['label' => $config['label'], 'restarting' => false],
-                $this->getProcessStatus($config['pid_file'])
+                $this->getProcessStatus($config['process_pattern'])
             );
         }
 
@@ -83,15 +83,11 @@ class SystemServiceManager
     /**
      * @return array{running: bool, uptime: string|null, memory: string|null}
      */
-    private function getProcessStatus(string $pidFile): array
+    private function getProcessStatus(string $processPattern): array
     {
-        if (! file_exists($pidFile)) {
-            return ['running' => false, 'uptime' => null, 'memory' => null];
-        }
+        $pid = (int) trim((string) shell_exec('pgrep -f '.escapeshellarg($processPattern).' 2>/dev/null | head -1'));
 
-        $pid = (int) trim((string) @file_get_contents($pidFile));
-
-        if ($pid <= 0 || ! file_exists("/proc/{$pid}")) {
+        if ($pid <= 0) {
             return ['running' => false, 'uptime' => null, 'memory' => null];
         }
 
