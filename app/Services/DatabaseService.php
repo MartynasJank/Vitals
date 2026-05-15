@@ -52,7 +52,7 @@ class DatabaseService
 
         return array_map(fn ($row) => [
             'name' => $row->name,
-            'engine' => $row->engine ?? 'unknown',
+            'engine' => $row->ENGINE ?? 'unknown',
             'rows' => (int) $row->row_count,
             'size_mb' => (float) $row->size_mb,
         ], $rows);
