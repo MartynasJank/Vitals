@@ -198,8 +198,12 @@
                                         @else
                                             <span class="w-1.5 h-1.5 rounded-full bg-gray-700 flex-shrink-0"></span>
                                         @endif
-                                        <a href="{{ route('ip-detail', $session['ip']) }}"
-                                           class="text-xs font-mono text-amber-400 hover:text-amber-300 transition-colors w-36 flex-shrink-0">{{ $session['ip'] }}</a>
+                                        @if($session['ip'])
+                                            <a href="{{ route('ip-detail', $session['ip']) }}"
+                                               class="text-xs font-mono text-amber-400 hover:text-amber-300 transition-colors w-36 flex-shrink-0">{{ $session['ip'] }}</a>
+                                        @else
+                                            <span class="text-xs font-mono text-gray-600 w-36 flex-shrink-0">unknown</span>
+                                        @endif
                                         @if($session['country'])
                                             <span class="text-xs text-gray-600">{{ $session['country'] }}</span>
                                         @endif

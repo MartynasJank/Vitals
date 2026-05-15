@@ -125,13 +125,13 @@ class Services extends Component
             ->where('started_at', '>=', now()->subHours(2))
             ->count();
 
-        $this->services['cowrie']['details'] = CowrieSession::with('threatIp')
+        $this->services['cowrie']['details'] = CowrieSession::with('ip')
             ->orderByDesc('started_at')
             ->limit(5)
-            ->get(['id', 'src_ip', 'started_at', 'ended_at'])
+            ->get(['id', 'ip_id', 'started_at', 'ended_at'])
             ->map(fn ($s) => [
-                'ip' => $s->src_ip,
-                'country' => $s->threatIp?->country,
+                'ip' => $s->ip?->ip,
+                'country' => $s->ip?->country,
                 'started_at' => $s->started_at?->diffForHumans(),
                 'active' => $s->ended_at === null,
             ])
