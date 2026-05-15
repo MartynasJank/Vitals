@@ -10,7 +10,14 @@ class SystemServiceManager
         'mysql' => 'MySQL',
         'php8.4-fpm' => 'PHP 8.4-FPM',
         'fail2ban' => 'Fail2ban',
-        'cowrie' => 'Cowrie Honeypot',
+    ];
+
+    /** @var array<string, array{label: string, pid_file: string}> */
+    private array $processServices = [
+        'cowrie' => [
+            'label' => 'Cowrie Honeypot',
+            'pid_file' => '/home/cowrie/cowrie/var/run/cowrie.pid',
+        ],
     ];
 
     /**
@@ -30,6 +37,13 @@ class SystemServiceManager
             }
 
             $result[$service] = array_merge(['label' => $label, 'restarting' => $restarting], $status);
+        }
+
+        foreach ($this->processServices as $key => $config) {
+            $result[$key] = array_merge(
+                ['label' => $config['label'], 'restarting' => false],
+                $this->getProcessStatus($config['pid_file'])
+            );
         }
 
         return $result;
@@ -64,6 +78,36 @@ class SystemServiceManager
         }
 
         return ['running' => $running, 'uptime' => $uptime, 'memory' => $memory];
+    }
+
+    /**
+     * @return array{running: bool, uptime: string|null, memory: string|null}
+     */
+    private function getProcessStatus(string $pidFile): array
+    {
+        if (! file_exists($pidFile)) {
+            return ['running' => false, 'uptime' => null, 'memory' => null];
+        }
+
+        $pid = (int) trim((string) file_get_contents($pidFile));
+
+        if ($pid <= 0 || ! file_exists("/proc/{$pid}")) {
+            return ['running' => false, 'uptime' => null, 'memory' => null];
+        }
+
+        $uptime = null;
+        $memory = null;
+
+        $ps = shell_exec('ps -o etimes=,rss= -p '.escapeshellarg((string) $pid).' 2>/dev/null');
+        if ($ps) {
+            $parts = preg_split('/\s+/', trim($ps));
+            $elapsed = (int) ($parts[0] ?? 0);
+            $rssKb = (int) ($parts[1] ?? 0);
+            $uptime = $elapsed > 0 ? $this->formatUptime($elapsed) : null;
+            $memory = $rssKb > 0 ? $this->formatBytes($rssKb * 1024) : null;
+        }
+
+        return ['running' => true, 'uptime' => $uptime, 'memory' => $memory];
     }
 
     public function restart(string $service): bool
