@@ -20,13 +20,13 @@ class SystemServiceManager
         ],
     ];
 
-    /** @var array<string, array{ports: int[], process: string}> */
+    /** @var array<string, string> */
     private array $serviceMeta = [
-        'nginx' => ['ports' => [80, 443], 'process' => 'nginx'],
-        'mysql' => ['ports' => [3306],     'process' => 'mysqld'],
-        'php8.4-fpm' => ['ports' => [],         'process' => 'php-fpm'],
-        'fail2ban' => ['ports' => [],         'process' => 'fail2ban'],
-        'cowrie' => ['ports' => [2222],     'process' => 'twistd'],
+        'nginx' => 'nginx',
+        'mysql' => 'mysqld',
+        'php8.4-fpm' => 'php-fpm',
+        'fail2ban' => 'fail2ban',
+        'cowrie' => 'twistd',
     ];
 
     /**
@@ -121,11 +121,11 @@ class SystemServiceManager
      */
     private function getExtra(string $key): array
     {
-        $meta = $this->serviceMeta[$key] ?? null;
+        $process = $this->serviceMeta[$key] ?? null;
 
         return [
-            'workers' => $meta ? $this->getWorkerCount($meta['process']) : null,
-            'ports' => $meta['ports'] ?? [],
+            'workers' => $process ? $this->getWorkerCount($process) : null,
+            'ports' => $process ? $this->getListeningPorts($process) : [],
             'journal' => $this->getRecentJournal($key),
         ];
     }
@@ -133,6 +133,28 @@ class SystemServiceManager
     private function getWorkerCount(string $processName): int
     {
         return (int) trim((string) shell_exec('pgrep -c -x '.escapeshellarg($processName).' 2>/dev/null'));
+    }
+
+    /** @return int[] */
+    private function getListeningPorts(string $processName): array
+    {
+        $output = shell_exec('ss -Htlnp 2>/dev/null');
+
+        if (! $output) {
+            return [];
+        }
+
+        $ports = [];
+        foreach (explode("\n", trim($output)) as $line) {
+            if (! str_contains($line, '"'.$processName.'"')) {
+                continue;
+            }
+            if (preg_match('/[:\[](\d+)\s/', $line, $m)) {
+                $ports[] = (int) $m[1];
+            }
+        }
+
+        return array_values(array_unique($ports));
     }
 
     /** @return string[] */
