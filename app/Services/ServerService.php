@@ -225,6 +225,76 @@ class ServerService
         return $partitions;
     }
 
+    /**
+     * @return array{device: string, read_kbps: float, write_kbps: float}
+     */
+    public function getDiskIoStats(): array
+    {
+        $device = trim(shell_exec("lsblk -nd -o NAME,TYPE 2>/dev/null | awk '\$2==\"disk\"{print \$1; exit}'") ?? '');
+
+        if (! preg_match('/^[a-z0-9]+$/', $device)) {
+            return ['device' => '', 'read_kbps' => 0.0, 'write_kbps' => 0.0];
+        }
+
+        $output = shell_exec('cat /proc/diskstats');
+
+        if (! $output) {
+            return ['device' => $device, 'read_kbps' => 0.0, 'write_kbps' => 0.0];
+        }
+
+        foreach (explode("\n", $output) as $line) {
+            $parts = preg_split('/\s+/', trim($line));
+
+            if (count($parts) < 10 || ($parts[2] ?? '') !== $device) {
+                continue;
+            }
+
+            $readBytes = (int) $parts[5] * 512;
+            $writeBytes = (int) $parts[9] * 512;
+
+            $cacheKey = "disk_io_{$device}";
+            $prev = cache()->get($cacheKey);
+            $now = time();
+            $readKbps = 0.0;
+            $writeKbps = 0.0;
+
+            if ($prev && isset($prev['time'], $prev['read'], $prev['write'])) {
+                $elapsed = $now - $prev['time'];
+
+                if ($elapsed > 0) {
+                    $readKbps = max(0.0, round(($readBytes - $prev['read']) / $elapsed / 1024, 1));
+                    $writeKbps = max(0.0, round(($writeBytes - $prev['write']) / $elapsed / 1024, 1));
+                }
+            }
+
+            cache()->put($cacheKey, ['time' => $now, 'read' => $readBytes, 'write' => $writeBytes], 60);
+
+            return ['device' => $device, 'read_kbps' => $readKbps, 'write_kbps' => $writeKbps];
+        }
+
+        return ['device' => $device, 'read_kbps' => 0.0, 'write_kbps' => 0.0];
+    }
+
+    /**
+     * @return array{total: int, established: int, time_wait: int}
+     */
+    public function getTcpStats(): array
+    {
+        $output = shell_exec('ss -s 2>/dev/null');
+
+        if (! $output) {
+            return ['total' => 0, 'established' => 0, 'time_wait' => 0];
+        }
+
+        preg_match('/TCP:\s+(\d+)\s+\(estab\s+(\d+).*?timewait\s+(\d+)/s', $output, $m);
+
+        return [
+            'total' => (int) ($m[1] ?? 0),
+            'established' => (int) ($m[2] ?? 0),
+            'time_wait' => (int) ($m[3] ?? 0),
+        ];
+    }
+
     public function killProcess(int $pid): bool
     {
         if ($pid <= 1) {
