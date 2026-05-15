@@ -209,7 +209,7 @@ class SystemServiceManager
 
     private function getNginxConnections(): ?int
     {
-        $output = shell_exec('curl -s --max-time 1 http://127.0.0.1/nginx_status 2>/dev/null');
+        $output = shell_exec('curl -s --max-time 1 -H "Host: vitals.martybuilds.dev" http://127.0.0.1/nginx_status 2>/dev/null');
 
         if (! $output || ! preg_match('/Active connections:\s*(\d+)/', $output, $m)) {
             return null;
@@ -221,7 +221,7 @@ class SystemServiceManager
     /** @return array{active: int, idle: int, total: int, slow: int}|null */
     private function getFpmPool(): ?array
     {
-        $output = shell_exec('curl -s --max-time 1 "http://127.0.0.1/fpm-status?json" 2>/dev/null');
+        $output = shell_exec('curl -s --max-time 1 -H "Host: vitals.martybuilds.dev" "http://127.0.0.1/fpm-status?json" 2>/dev/null');
 
         if (! $output) {
             return null;
