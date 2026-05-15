@@ -175,7 +175,12 @@
                             @endif
 
                             {{-- Response time chart --}}
-                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Response Time History</p>
+                            <div class="flex items-center gap-3 mb-3">
+                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Response Time History</p>
+                                @if(isset($site['uptime_24h']))
+                                    <span class="text-xs font-mono {{ $site['uptime_24h'] < 100 ? 'text-amber-400' : 'text-green-400' }}">{{ $site['uptime_24h'] }}% uptime</span>
+                                @endif
+                            </div>
 
                             @if(empty($siteHistory))
                                 <p class="text-sm text-gray-600 font-mono mb-5">No history yet — checks are recorded every 5 minutes.</p>
