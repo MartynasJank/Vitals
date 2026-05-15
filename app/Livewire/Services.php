@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\CowrieSession;
 use App\Services\SecurityService;
 use App\Services\SystemServiceManager;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Livewire\Attributes\Poll;
 use Livewire\Component;
@@ -29,6 +30,16 @@ class Services extends Component
 
     public ?string $cronError = null;
 
+    /** @var array<int, array{pid: int, options: string}> */
+    public array $queueWorkers = [];
+
+    public int $failedJobs = 0;
+
+    /** @var array<int, array{job: string, queue: string, failed_at: string, exception: string}> */
+    public array $recentFailedJobs = [];
+
+    public ?string $schedulerLastRun = null;
+
     public function mount(): void
     {
         $this->loadServices();
@@ -40,7 +51,36 @@ class Services extends Component
     public function loadServices(): void
     {
         $this->restartMessage = null;
-        $this->services = app(SystemServiceManager::class)->getAll();
+        $manager = app(SystemServiceManager::class);
+        $this->services = $manager->getAll();
+        $this->queueWorkers = $manager->getQueueWorkers();
+        $this->schedulerLastRun = $manager->getSchedulerLastRun();
+        $this->loadFailedJobs();
+    }
+
+    private function loadFailedJobs(): void
+    {
+        try {
+            $this->failedJobs = DB::table('failed_jobs')->count();
+            $this->recentFailedJobs = DB::table('failed_jobs')
+                ->orderByDesc('failed_at')
+                ->limit(3)
+                ->get(['queue', 'payload', 'exception', 'failed_at'])
+                ->map(function ($row) {
+                    $payload = json_decode($row->payload, true);
+
+                    return [
+                        'job' => class_basename($payload['displayName'] ?? 'Unknown'),
+                        'queue' => $row->queue,
+                        'failed_at' => $row->failed_at,
+                        'exception' => strtok($row->exception ?? '', "\n"),
+                    ];
+                })
+                ->all();
+        } catch (\Exception) {
+            $this->failedJobs = 0;
+            $this->recentFailedJobs = [];
+        }
     }
 
     public function loadCronJobs(): void

@@ -60,6 +60,20 @@
                             </div>
                         @endif
 
+                        @if($key === 'nginx' && isset($service['connections']))
+                            <div class="text-right hidden sm:block">
+                                <p class="text-xs text-gray-500 mb-0.5">Connections</p>
+                                <p class="text-sm text-gray-300">{{ $service['connections'] }}</p>
+                            </div>
+                        @endif
+
+                        @if($key === 'php8.4-fpm' && !empty($service['fpm']))
+                            <div class="text-right hidden sm:block">
+                                <p class="text-xs text-gray-500 mb-0.5">Pool</p>
+                                <p class="text-sm text-gray-300">{{ $service['fpm']['active'] }}a / {{ $service['fpm']['idle'] }}i</p>
+                            </div>
+                        @endif
+
                         <div class="text-right">
                             <p class="text-xs text-gray-500 mb-0.5">Status</p>
                             <p class="text-sm font-medium {{ $service['restarting'] ? 'text-amber-400' : ($service['running'] ? 'text-green-400' : 'text-red-400') }}">
@@ -95,9 +109,60 @@
         @endforeach
     </div>
 
+    {{-- Queue Workers --}}
+    <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Queue Workers</h2>
+        @if($failedJobs > 0)
+            <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-red-900/30 text-red-400">{{ $failedJobs }} failed</span>
+        @else
+            <span class="text-xs font-mono text-gray-600">0 failed</span>
+        @endif
+    </div>
+
+    @if(empty($queueWorkers))
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4 mb-4">
+            <p class="text-sm text-gray-500">No queue workers running.</p>
+        </div>
+    @else
+        <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800 mb-4">
+            @foreach($queueWorkers as $worker)
+                <div class="px-5 py-3 flex items-center gap-4">
+                    <span class="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></span>
+                    <span class="text-xs font-mono text-gray-600">pid {{ $worker['pid'] }}</span>
+                    <span class="text-xs font-mono text-gray-400 truncate flex-1">{{ $worker['options'] ?: '--queue=default' }}</span>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
+    @if(!empty($recentFailedJobs))
+        <div class="bg-gray-900 border border-red-900/30 rounded-lg divide-y divide-gray-800 mb-10">
+            <div class="px-5 py-3">
+                <p class="text-xs font-semibold text-red-500 uppercase tracking-wider">Recent Failures</p>
+            </div>
+            @foreach($recentFailedJobs as $job)
+                <div class="px-5 py-3">
+                    <div class="flex items-center gap-3 mb-1">
+                        <span class="text-xs font-mono text-red-400">{{ $job['job'] }}</span>
+                        <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-gray-800 text-gray-500">{{ $job['queue'] }}</span>
+                        <span class="text-xs text-gray-600 font-mono">{{ $job['failed_at'] }}</span>
+                    </div>
+                    @if($job['exception'])
+                        <p class="text-xs font-mono text-gray-600 truncate">{{ $job['exception'] }}</p>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    @else
+        <div class="mb-10"></div>
+    @endif
+
     {{-- Cron Jobs --}}
     <div class="flex items-center justify-between mb-3">
         <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Cron Jobs</h2>
+        @if($schedulerLastRun)
+            <span class="text-xs font-mono text-gray-600">scheduler {{ $schedulerLastRun }}</span>
+        @endif
     </div>
 
     @if(empty($cronJobs))
