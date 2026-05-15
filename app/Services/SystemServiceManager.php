@@ -56,7 +56,9 @@ class SystemServiceManager
             );
         }
 
-        $result['nginx']['connections'] = $this->getNginxConnections();
+        $nginxStats = $this->getNginxStats();
+        $result['nginx']['connections'] = $nginxStats['connections'] ?? null;
+        $result['nginx']['details'] = $nginxStats;
         $result['php8.4-fpm']['fpm'] = $this->getFpmPool();
 
         return $result;
@@ -205,15 +207,32 @@ class SystemServiceManager
         return $diff < 120 ? $diff.'s ago' : round($diff / 60).'m ago';
     }
 
-    private function getNginxConnections(): ?int
+    /** @return array{connections: int, accepted: int, handled: int, requests: int, reading: int, writing: int, waiting: int}|null */
+    private function getNginxStats(): ?array
     {
         $output = shell_exec('curl -s --max-time 1 -H "Host: vitals.martybuilds.dev" http://127.0.0.1/nginx_status 2>/dev/null');
 
-        if (! $output || ! preg_match('/Active connections:\s*(\d+)/', $output, $m)) {
+        if (! $output) {
             return null;
         }
 
-        return (int) $m[1];
+        preg_match('/Active connections:\s*(\d+)/', $output, $activeM);
+        preg_match('/^\s*(\d+)\s+(\d+)\s+(\d+)\s*$/m', $output, $countsM);
+        preg_match('/Reading:\s*(\d+)\s+Writing:\s*(\d+)\s+Waiting:\s*(\d+)/', $output, $rwwM);
+
+        if (empty($activeM[1])) {
+            return null;
+        }
+
+        return [
+            'connections' => (int) $activeM[1],
+            'accepted' => (int) ($countsM[1] ?? 0),
+            'handled' => (int) ($countsM[2] ?? 0),
+            'requests' => (int) ($countsM[3] ?? 0),
+            'reading' => (int) ($rwwM[1] ?? 0),
+            'writing' => (int) ($rwwM[2] ?? 0),
+            'waiting' => (int) ($rwwM[3] ?? 0),
+        ];
     }
 
     /** @return array{active: int, idle: int, total: int, slow: int}|null */
