@@ -15,10 +15,16 @@ class Logs extends Component
 
     public bool $polling = true;
 
-    /** @var array<int, array{raw: string, level: string}> */
+    public bool $wordWrap = true;
+
+    public string $levelFilter = 'all';
+
+    public int $lineCount = 100;
+
+    /** @var array<int, array{raw: string, level: string, type: string}> */
     public array $lines = [];
 
-    /** @var array<string, array{label: string, path: string}> */
+    /** @var array<string, array{label: string, path: string, size: string, modified: string}> */
     public array $sources = [];
 
     public function mount(): void
@@ -30,13 +36,18 @@ class Logs extends Component
 
     public function loadLines(): void
     {
-        $this->lines = app(LogService::class)->getLines($this->activeSource, $this->search);
+        $all = app(LogService::class)->getLines($this->activeSource, $this->search, $this->lineCount);
+
+        $this->lines = $this->levelFilter === 'all'
+            ? $all
+            : array_values(array_filter($all, fn ($l) => $l['level'] === $this->levelFilter));
     }
 
     public function switchSource(string $source): void
     {
         $this->activeSource = $source;
         $this->search = '';
+        $this->levelFilter = 'all';
         $this->loadLines();
     }
 
@@ -45,9 +56,24 @@ class Logs extends Component
         $this->loadLines();
     }
 
+    public function updatedLineCount(): void
+    {
+        $this->loadLines();
+    }
+
+    public function updatedLevelFilter(): void
+    {
+        $this->loadLines();
+    }
+
     public function togglePolling(): void
     {
         $this->polling = ! $this->polling;
+    }
+
+    public function toggleWrap(): void
+    {
+        $this->wordWrap = ! $this->wordWrap;
     }
 
     public function download(): StreamedResponse
@@ -59,13 +85,10 @@ class Logs extends Component
             return response()->streamDownload(fn () => print (''), 'empty.log');
         }
 
-        $filename = $this->activeSource.'.log';
-        $filePath = $path;
-
-        return response()->streamDownload(function () use ($filePath) {
-            $content = file_get_contents($filePath);
+        return response()->streamDownload(function () use ($path) {
+            $content = file_get_contents($path);
             echo $content !== false ? $content : '';
-        }, $filename);
+        }, $this->activeSource.'.log');
     }
 
     public function render(): View
