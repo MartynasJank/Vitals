@@ -29,6 +29,14 @@ class Resources extends Component
     /** @var array{interface: string, rx_rate_kbps: float, tx_rate_kbps: float, rx_total_gb: float, tx_total_gb: float} */
     public array $network = ['interface' => '', 'rx_rate_kbps' => 0.0, 'tx_rate_kbps' => 0.0, 'rx_total_gb' => 0.0, 'tx_total_gb' => 0.0];
 
+    /** @var array{device: string, read_kbps: float, write_kbps: float} */
+    public array $diskIo = ['device' => '', 'read_kbps' => 0.0, 'write_kbps' => 0.0];
+
+    /** @var array{total: int, established: int, time_wait: int} */
+    public array $tcpStats = ['total' => 0, 'established' => 0, 'time_wait' => 0];
+
+    public string $uptime = '';
+
     /** @var array<int, array{device: string, mount: string, total_gb: int, used_gb: int, avail_gb: int, percent: int}> */
     public array $diskPartitions = [];
 
@@ -54,10 +62,13 @@ class Resources extends Component
         $this->cpuPercent = $server->getCpuPercent();
         $this->loadAverage = $server->getLoadAverage();
         $this->coreCount = $server->getCoreCount();
+        $this->uptime = $server->getServerUptime();
         $this->ram = $server->getRamStats();
         $this->swap = $server->getSwapStats();
         $this->disk = $server->getDiskStats();
+        $this->diskIo = $server->getDiskIoStats();
         $this->network = $server->getNetworkStats();
+        $this->tcpStats = $server->getTcpStats();
         $this->diskPartitions = $server->getAllDiskPartitions();
         $this->processes = $server->getTopProcesses($this->processSort);
     }
@@ -99,6 +110,8 @@ class Resources extends Component
                 ? round($s->ram_used_mb / $s->ram_total_mb * 100, 1)
                 : 0
             ),
+            'netRxHistory' => $snapshots->map(fn ($s) => round($s->rx_rate_kbps ?? 0, 1)),
+            'netTxHistory' => $snapshots->map(fn ($s) => round($s->tx_rate_kbps ?? 0, 1)),
             'labels' => $snapshots->map(fn ($s) => $s->recorded_at->format($labelFormat)),
         ]);
     }
