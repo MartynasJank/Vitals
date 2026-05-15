@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
+
 class SystemServiceManager
 {
     /** @var array<string, string> */
@@ -55,6 +57,9 @@ class SystemServiceManager
                 $this->getExtra($key)
             );
         }
+
+        $result['nginx']['connections'] = $this->getNginxConnections();
+        $result['php8.4-fpm']['fpm'] = $this->getFpmPool();
 
         return $result;
     }
@@ -168,6 +173,72 @@ class SystemServiceManager
         }
 
         return array_values(array_filter(explode("\n", trim($output))));
+    }
+
+    /** @return array<int, array{pid: int, options: string}> */
+    public function getQueueWorkers(): array
+    {
+        $output = shell_exec('pgrep -a -f "artisan queue:work" 2>/dev/null');
+
+        if (! $output) {
+            return [];
+        }
+
+        $workers = [];
+        foreach (array_filter(explode("\n", trim($output))) as $line) {
+            if (preg_match('/^(\d+)\s+.*artisan queue:work(.*)$/', $line, $m)) {
+                $workers[] = ['pid' => (int) $m[1], 'options' => trim($m[2])];
+            }
+        }
+
+        return $workers;
+    }
+
+    public function getSchedulerLastRun(): ?string
+    {
+        $ts = cache()->get('vitals_scheduler_last_run');
+
+        if (! $ts) {
+            return null;
+        }
+
+        $diff = now()->diffInSeconds(Carbon::parse($ts));
+
+        return $diff < 120 ? $diff.'s ago' : round($diff / 60).'m ago';
+    }
+
+    private function getNginxConnections(): ?int
+    {
+        $output = shell_exec('curl -s --max-time 1 http://127.0.0.1/nginx_status 2>/dev/null');
+
+        if (! $output || ! preg_match('/Active connections:\s*(\d+)/', $output, $m)) {
+            return null;
+        }
+
+        return (int) $m[1];
+    }
+
+    /** @return array{active: int, idle: int, total: int, slow: int}|null */
+    private function getFpmPool(): ?array
+    {
+        $output = shell_exec('curl -s --max-time 1 "http://127.0.0.1/fpm-status?json" 2>/dev/null');
+
+        if (! $output) {
+            return null;
+        }
+
+        $data = json_decode($output, true);
+
+        if (! is_array($data) || ! isset($data['active processes'])) {
+            return null;
+        }
+
+        return [
+            'active' => $data['active processes'],
+            'idle' => $data['idle processes'],
+            'total' => $data['total processes'],
+            'slow' => $data['slow requests'] ?? 0,
+        ];
     }
 
     public function restart(string $service): bool
