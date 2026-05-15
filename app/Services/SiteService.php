@@ -115,7 +115,7 @@ class SiteService
 
     /**
      * @param  string[]  $urls
-     * @return array<string, array{uptime_24h: float, avg_ms: int|null, max_ms: int|null, last_down_at: string|null, check_count: int, recent_statuses: string[]}>
+     * @return array<string, array{uptime_24h: float, avg_ms: int|null, p95_ms: int|null, max_ms: int|null, last_down_at: string|null, check_count: int, recent_statuses: string[]}>
      */
     public function getSiteStats(array $urls): array
     {
@@ -151,6 +151,19 @@ class SiteService
             ->groupBy('url')
             ->map(fn ($g) => $g->take(20)->reverse()->values()->pluck('status')->all());
 
+        $p95 = SiteCheck::whereIn('url', $urls)
+            ->where('checked_at', '>=', $since)
+            ->whereNotNull('response_ms')
+            ->orderBy('response_ms')
+            ->get(['url', 'response_ms'])
+            ->groupBy('url')
+            ->map(function ($checks) {
+                $values = $checks->pluck('response_ms')->values();
+                $count = $values->count();
+
+                return $count > 0 ? $values[(int) ceil(0.95 * $count) - 1] : null;
+            });
+
         $stats = [];
         foreach ($urls as $url) {
             $a = $agg->get($url);
@@ -160,6 +173,7 @@ class SiteService
             $stats[$url] = [
                 'uptime_24h' => $a && $a->cnt > 0 ? round(($a->up_cnt / $a->cnt) * 100, 1) : 100.0,
                 'avg_ms' => $a ? (int) $a->avg_ms : null,
+                'p95_ms' => $p95->has($url) ? (int) $p95->get($url) : null,
                 'max_ms' => $a ? (int) $a->max_ms : null,
                 'last_down_at' => $d?->ts ? Carbon::parse($d->ts)->diffForHumans() : null,
                 'check_count' => $t ? (int) $t->cnt : 0,
@@ -171,7 +185,48 @@ class SiteService
     }
 
     /**
-     * @return array{url: string, status: string, status_code: int|null, response_ms: int|null}
+     * @return array<int, array{started_at: string, duration_min: int, resolved: bool}>
+     */
+    public function getDowntimeIncidents(string $url, int $limit = 10): array
+    {
+        $checks = SiteCheck::where('url', $url)
+            ->where('checked_at', '>=', now()->subDays(30))
+            ->orderBy('checked_at')
+            ->get(['checked_at', 'status']);
+
+        if ($checks->isEmpty()) {
+            return [];
+        }
+
+        $incidents = [];
+        $downStart = null;
+
+        foreach ($checks as $check) {
+            if ($check->status === 'down' && $downStart === null) {
+                $downStart = $check->checked_at;
+            } elseif ($check->status === 'up' && $downStart !== null) {
+                $incidents[] = [
+                    'started_at' => $downStart->diffForHumans(),
+                    'duration_min' => (int) $downStart->diffInMinutes($check->checked_at),
+                    'resolved' => true,
+                ];
+                $downStart = null;
+            }
+        }
+
+        if ($downStart !== null) {
+            $incidents[] = [
+                'started_at' => $downStart->diffForHumans(),
+                'duration_min' => (int) $downStart->diffInMinutes(now()),
+                'resolved' => false,
+            ];
+        }
+
+        return array_slice(array_reverse($incidents), 0, $limit);
+    }
+
+    /**
+     * @return array{url: string, status: string, status_code: int|null, response_ms: int|null, security_headers: array{hsts: bool, xcto: bool, xfo: bool, csp: bool}|null, redirects_to_https: bool|null}
      */
     public function checkSite(string $url): array
     {
@@ -181,11 +236,34 @@ class SiteService
             $response = Http::timeout(10)->get($url);
             $ms = (int) ((hrtime(true) - $start) / 1_000_000);
 
+            $h = $response->headers();
+            $securityHeaders = [
+                'hsts' => ! empty($h['strict-transport-security']),
+                'xcto' => ! empty($h['x-content-type-options']),
+                'xfo' => ! empty($h['x-frame-options']),
+                'csp' => ! empty($h['content-security-policy']),
+            ];
+
+            $redirectsToHttps = null;
+            $parsed = parse_url($url);
+            if (($parsed['scheme'] ?? '') === 'https' && ! empty($parsed['host'])) {
+                $httpUrl = 'http://'.$parsed['host'].($parsed['path'] ?? '/');
+                try {
+                    $redirect = Http::timeout(5)->withoutRedirecting()->get($httpUrl);
+                    $location = $redirect->header('Location') ?? '';
+                    $redirectsToHttps = str_starts_with($location, 'https://');
+                } catch (\Exception) {
+                    $redirectsToHttps = false;
+                }
+            }
+
             return [
                 'url' => $url,
                 'status' => $response->successful() ? 'up' : 'down',
                 'status_code' => $response->status(),
                 'response_ms' => $ms,
+                'security_headers' => $securityHeaders,
+                'redirects_to_https' => $redirectsToHttps,
             ];
         } catch (\Exception) {
             return [
@@ -193,6 +271,8 @@ class SiteService
                 'status' => 'down',
                 'status_code' => null,
                 'response_ms' => null,
+                'security_headers' => null,
+                'redirects_to_https' => null,
             ];
         }
     }
