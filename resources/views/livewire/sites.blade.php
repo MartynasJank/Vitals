@@ -107,6 +107,12 @@
                                             <p class="text-sm font-mono text-gray-300">{{ $site['avg_ms'] }}ms</p>
                                         </div>
                                     @endif
+                                    @if(isset($site['p95_ms']) && $site['p95_ms'] !== null)
+                                        <div>
+                                            <p class="text-xs text-gray-600 mb-0.5">p95 (24h)</p>
+                                            <p class="text-sm font-mono {{ $site['p95_ms'] >= 500 ? 'text-red-400' : ($site['p95_ms'] >= 200 ? 'text-amber-400' : 'text-gray-300') }}">{{ $site['p95_ms'] }}ms</p>
+                                        </div>
+                                    @endif
                                     @if(isset($site['max_ms']) && $site['max_ms'] !== null)
                                         <div>
                                             <p class="text-xs text-gray-600 mb-0.5">Slowest (24h)</p>
@@ -125,6 +131,46 @@
                                             <p class="text-sm font-mono text-gray-500">{{ number_format($site['check_count']) }}</p>
                                         </div>
                                     @endif
+                                </div>
+                            @endif
+
+                            {{-- Security checks --}}
+                            @if(isset($site['security_headers']) || isset($site['redirects_to_https']))
+                                <div class="mb-5">
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Security</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        @if(isset($site['redirects_to_https']))
+                                            <span class="text-xs font-mono px-1.5 py-0.5 rounded {{ $site['redirects_to_https'] ? 'bg-green-950/50 text-green-400' : 'bg-amber-950/50 text-amber-400' }}">
+                                                HTTP→HTTPS
+                                            </span>
+                                        @endif
+                                        @if(isset($site['security_headers']) && $site['security_headers'] !== null)
+                                            @foreach(['hsts' => 'HSTS', 'xcto' => 'X-Content-Type', 'xfo' => 'X-Frame-Options', 'csp' => 'CSP'] as $key => $label)
+                                                <span class="text-xs font-mono px-1.5 py-0.5 rounded {{ $site['security_headers'][$key] ? 'bg-green-950/50 text-green-400' : 'bg-gray-800 text-gray-600' }}">
+                                                    {{ $label }}
+                                                </span>
+                                            @endforeach
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
+
+                            {{-- Downtime incidents --}}
+                            @if(!empty($siteIncidents))
+                                <div class="mb-5">
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Downtime Incidents</p>
+                                    <div class="space-y-1">
+                                        @foreach($siteIncidents as $incident)
+                                            <div class="flex items-center gap-3 text-xs font-mono">
+                                                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $incident['resolved'] ? 'bg-gray-600' : 'bg-red-500' }}"></span>
+                                                <span class="text-gray-400">{{ $incident['started_at'] }}</span>
+                                                <span class="text-gray-600">{{ $incident['duration_min'] }}m</span>
+                                                @if(! $incident['resolved'])
+                                                    <span class="text-red-400">ongoing</span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             @endif
 
