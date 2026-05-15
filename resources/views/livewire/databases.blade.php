@@ -97,4 +97,105 @@
             @endforeach
         </div>
     @endif
+
+    {{-- Process list --}}
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mt-10 mb-3">Active Queries</h2>
+    @if(empty($processList))
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+            <p class="text-sm text-gray-500">No active queries.</p>
+        </div>
+    @else
+        <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-x-auto">
+            <table class="w-full text-xs font-mono min-w-[640px]">
+                <thead>
+                    <tr class="border-b border-gray-800">
+                        <th class="px-4 py-2.5 text-left text-gray-500 font-medium">ID</th>
+                        <th class="px-4 py-2.5 text-left text-gray-500 font-medium">User</th>
+                        <th class="px-4 py-2.5 text-left text-gray-500 font-medium">DB</th>
+                        <th class="px-4 py-2.5 text-left text-gray-500 font-medium">Command</th>
+                        <th class="px-4 py-2.5 text-right text-gray-500 font-medium">Time (s)</th>
+                        <th class="px-4 py-2.5 text-left text-gray-500 font-medium">State</th>
+                        <th class="px-4 py-2.5 text-left text-gray-500 font-medium">Query</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                    @foreach($processList as $process)
+                        <tr class="{{ $process['time'] >= 5 ? 'bg-amber-900/10' : '' }}">
+                            <td class="px-4 py-2.5 text-gray-500">{{ $process['id'] }}</td>
+                            <td class="px-4 py-2.5 text-gray-300">{{ $process['user'] }}</td>
+                            <td class="px-4 py-2.5 text-gray-400">{{ $process['db'] ?? '—' }}</td>
+                            <td class="px-4 py-2.5 text-blue-400">{{ $process['command'] }}</td>
+                            <td class="px-4 py-2.5 text-right {{ $process['time'] >= 5 ? 'text-amber-400' : 'text-gray-300' }}">{{ $process['time'] }}</td>
+                            <td class="px-4 py-2.5 text-gray-400">{{ $process['state'] ?? '—' }}</td>
+                            <td class="px-4 py-2.5 text-gray-300 max-w-xs truncate">{{ $process['info'] ?? '—' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    {{-- Slow queries --}}
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mt-10 mb-3">Slowest Queries</h2>
+    @if(empty($slowQueries))
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+            <p class="text-sm text-gray-500">No query data available.</p>
+        </div>
+    @else
+        <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-x-auto">
+            <table class="w-full text-xs font-mono min-w-[640px]">
+                <thead>
+                    <tr class="border-b border-gray-800">
+                        <th class="px-4 py-2.5 text-left text-gray-500 font-medium">Query</th>
+                        <th class="px-4 py-2.5 text-left text-gray-500 font-medium">DB</th>
+                        <th class="px-4 py-2.5 text-right text-gray-500 font-medium">Count</th>
+                        <th class="px-4 py-2.5 text-right text-gray-500 font-medium">Avg (ms)</th>
+                        <th class="px-4 py-2.5 text-right text-gray-500 font-medium">Max (ms)</th>
+                        <th class="px-4 py-2.5 text-right text-gray-500 font-medium">Total (ms)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                    @foreach($slowQueries as $query)
+                        <tr>
+                            <td class="px-4 py-2.5 text-gray-300 max-w-sm truncate" title="{{ $query['query'] }}">{{ $query['query'] }}</td>
+                            <td class="px-4 py-2.5 text-gray-400">{{ $query['schema'] ?? '—' }}</td>
+                            <td class="px-4 py-2.5 text-right text-gray-400">{{ number_format($query['count']) }}</td>
+                            <td class="px-4 py-2.5 text-right {{ $query['avg_ms'] >= 1000 ? 'text-red-400' : ($query['avg_ms'] >= 100 ? 'text-amber-400' : 'text-gray-300') }}">{{ number_format($query['avg_ms'], 2) }}</td>
+                            <td class="px-4 py-2.5 text-right text-gray-400">{{ number_format($query['max_ms'], 2) }}</td>
+                            <td class="px-4 py-2.5 text-right text-gray-400">{{ number_format($query['total_ms'], 2) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    {{-- InnoDB status --}}
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mt-10 mb-3">InnoDB Status</h2>
+    <div class="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+            <p class="text-xs text-gray-500 mb-1">Active Transactions</p>
+            <p class="text-sm font-mono {{ $innodbStatus['active_transactions'] > 0 ? 'text-amber-400' : 'text-gray-100' }}">{{ $innodbStatus['active_transactions'] }}</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+            <p class="text-xs text-gray-500 mb-1">Lock Waits</p>
+            <p class="text-sm font-mono {{ $innodbStatus['lock_waits'] > 0 ? 'text-red-400' : 'text-gray-100' }}">{{ $innodbStatus['lock_waits'] }}</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+            <p class="text-xs text-gray-500 mb-1">History List Length</p>
+            <p class="text-sm font-mono {{ ($innodbStatus['history_list_length'] ?? 0) > 1000 ? 'text-red-400' : (($innodbStatus['history_list_length'] ?? 0) > 100 ? 'text-amber-400' : 'text-gray-100') }}">
+                {{ $innodbStatus['history_list_length'] ?? '—' }}
+            </p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-5 py-4">
+            <p class="text-xs text-gray-500 mb-1">Last Deadlock</p>
+            <p class="text-sm font-mono {{ $innodbStatus['last_deadlock'] ? 'text-red-400' : 'text-gray-100' }}">{{ $innodbStatus['last_deadlock'] ? 'Detected' : 'None' }}</p>
+        </div>
+    </div>
+    @if($innodbStatus['last_deadlock'])
+        <div class="bg-gray-900 border border-red-900/50 rounded-lg px-5 py-4">
+            <p class="text-xs text-red-400 font-medium mb-2">Latest Detected Deadlock</p>
+            <pre class="text-xs font-mono text-gray-400 whitespace-pre-wrap break-all">{{ $innodbStatus['last_deadlock'] }}</pre>
+        </div>
+    @endif
 </div>
