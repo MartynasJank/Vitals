@@ -18,6 +18,9 @@ class Sites extends Component
     /** @var array<int, array{time: string, response_ms: int|null, status: string}> */
     public array $siteHistory = [];
 
+    /** @var array<int, array{started_at: string, duration_min: int, resolved: bool}> */
+    public array $siteIncidents = [];
+
     public ?string $nginxConfig = null;
 
     public function mount(): void
@@ -96,6 +99,7 @@ class Sites extends Component
         if ($this->selectedSite === $url) {
             $this->selectedSite = null;
             $this->siteHistory = [];
+            $this->siteIncidents = [];
             $this->nginxConfig = null;
 
             return;
@@ -125,7 +129,10 @@ class Sites extends Component
             ])
             ->all();
 
+        $service = app(SiteService::class);
+        $this->siteIncidents = $service->getDowntimeIncidents($url);
+
         $domain = parse_url($url, PHP_URL_HOST);
-        $this->nginxConfig = app(SiteService::class)->getNginxConfig($domain);
+        $this->nginxConfig = $service->getNginxConfig($domain);
     }
 }
