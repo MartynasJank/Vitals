@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\CowrieSession;
+use App\Services\DatabaseService;
 use App\Services\SecurityService;
 use App\Services\SystemServiceManager;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,6 @@ class Services extends Component
     {
         $this->loadServices();
         $this->loadCronJobs();
-        $this->loadBadges();
     }
 
     #[Poll('10s')]
@@ -56,6 +56,7 @@ class Services extends Component
         $this->queueWorkers = $manager->getQueueWorkers();
         $this->schedulerLastRun = $manager->getSchedulerLastRun();
         $this->loadFailedJobs();
+        $this->loadServiceDetails();
     }
 
     private function loadFailedJobs(): void
@@ -100,12 +101,41 @@ class Services extends Component
             ->all();
     }
 
-    public function loadBadges(): void
+    private function loadServiceDetails(): void
     {
-        $this->failBanned = count(app(SecurityService::class)->getBannedIps());
+        // MySQL
+        try {
+            $stats = app(DatabaseService::class)->getServerStats();
+            $this->services['mysql']['details'] = $stats;
+        } catch (\Exception) {
+            $this->services['mysql']['details'] = null;
+        }
+
+        // Fail2ban — reuse result for badge + details
+        $banned = app(SecurityService::class)->getBannedIps();
+        $this->failBanned = count($banned);
+        $byJail = [];
+        foreach ($banned as $entry) {
+            $byJail[$entry['jail']][] = $entry['ip'];
+        }
+        $this->services['fail2ban']['details'] = $byJail;
+
+        // Cowrie — reuse result for badge + details
         $this->cowrieActiveSessions = CowrieSession::whereNull('ended_at')
             ->where('started_at', '>=', now()->subHours(2))
             ->count();
+
+        $this->services['cowrie']['details'] = CowrieSession::with('threatIp')
+            ->orderByDesc('started_at')
+            ->limit(5)
+            ->get(['id', 'src_ip', 'started_at', 'ended_at'])
+            ->map(fn ($s) => [
+                'ip' => $s->src_ip,
+                'country' => $s->threatIp?->country,
+                'started_at' => $s->started_at?->diffForHumans(),
+                'active' => $s->ended_at === null,
+            ])
+            ->all();
     }
 
     public function addCronJob(): void
