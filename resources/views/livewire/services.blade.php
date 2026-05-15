@@ -61,8 +61,9 @@
     @else
         <div class="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800">
             @foreach($cronJobs as $job)
-                <div class="px-5 py-3.5 overflow-x-auto">
-                    <p class="text-sm font-mono text-gray-300 whitespace-nowrap">{{ $job }}</p>
+                <div class="px-5 py-3 flex items-baseline gap-4">
+                    <span class="text-xs font-mono text-amber-400 whitespace-nowrap flex-shrink-0">{{ $job['schedule'] }}</span>
+                    <span class="text-xs font-mono text-gray-400 truncate">{{ $job['command'] }}</span>
                 </div>
             @endforeach
         </div>
