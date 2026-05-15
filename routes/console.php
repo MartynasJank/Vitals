@@ -34,3 +34,7 @@ Schedule::call(fn () => SiteCheck::where('checked_at', '<', now()->subDays(30))-
 Schedule::call(fn () => CowrieLogin::where('is_success', false)->where('timestamp', '<', now()->subDays(30))->delete())
     ->daily()
     ->name('cleanup:cowrie-logins');
+
+Schedule::call(fn () => cache()->put('vitals_scheduler_last_run', now()->toIso8601String(), 3600))
+    ->everyMinute()
+    ->name('vitals:heartbeat');
