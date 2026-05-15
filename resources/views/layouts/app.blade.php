@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +11,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 @livewireStyles
 </head>
-<body class="h-full bg-gray-950 text-gray-100 flex" x-data="{ sidebarOpen: false }">
+<body class="bg-gray-950 text-gray-100 flex min-h-screen" x-data="{ sidebarOpen: false }">
 
     {{-- Mobile header --}}
     <header class="fixed top-0 inset-x-0 z-40 h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4 md:hidden">
@@ -128,7 +128,7 @@
     </aside>
 
     {{-- Main content --}}
-    <main class="flex-1 overflow-y-auto pt-14 md:pt-0">
+    <main class="flex-1 pt-14 md:pt-0">
         <div class="p-4 md:p-6">
             {{ $slot }}
         </div>
