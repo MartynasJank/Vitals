@@ -23,6 +23,9 @@
             <div>
                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">CPU</p>
                 <p class="text-3xl font-bold text-gray-100">{{ number_format($cpuPercent, 1) }}<span class="text-lg text-gray-500 ml-1">%</span></p>
+                @if($uptime)
+                    <p class="text-xs text-gray-600 font-mono mt-0.5">up {{ $uptime }}</p>
+                @endif
             </div>
             <div class="grid grid-cols-4 gap-3 sm:flex sm:gap-8 sm:text-right">
                 <div>
@@ -93,7 +96,13 @@
 
     {{-- Disk --}}
     <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-4">
-        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Disk</p>
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Disk</p>
+            <div class="flex gap-4">
+                <span class="text-xs font-mono text-gray-600">R {{ $diskIo['read_kbps'] }} KB/s</span>
+                <span class="text-xs font-mono text-gray-600">W {{ $diskIo['write_kbps'] }} KB/s</span>
+            </div>
+        </div>
         @if(!empty($diskPartitions))
             <div class="space-y-3">
                 @foreach($diskPartitions as $partition)
@@ -126,12 +135,12 @@
 
     {{-- Network --}}
     <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-6">
-        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
             <div>
                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Network</p>
                 <p class="text-xs text-gray-600 font-mono">{{ $network['interface'] }}</p>
             </div>
-            <div class="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:gap-8 sm:text-right">
+            <div class="grid grid-cols-3 gap-x-6 gap-y-3 sm:flex sm:gap-8 sm:text-right">
                 <div>
                     <p class="text-xs text-gray-500 mb-1">↓ In</p>
                     <p class="text-sm font-mono text-gray-100">{{ $network['rx_rate_kbps'] }} KB/s</p>
@@ -148,7 +157,18 @@
                     <p class="text-xs text-gray-500 mb-1">Total Out</p>
                     <p class="text-sm font-mono text-gray-100">{{ $network['tx_total_gb'] }} GB</p>
                 </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">TCP Estab</p>
+                    <p class="text-sm font-mono text-gray-100">{{ $tcpStats['established'] }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">Time-Wait</p>
+                    <p class="text-sm font-mono {{ $tcpStats['time_wait'] > 100 ? 'text-amber-400' : 'text-gray-100' }}">{{ $tcpStats['time_wait'] }}</p>
+                </div>
             </div>
+        </div>
+        <div class="h-24" wire:ignore>
+            <canvas id="networkChart"></canvas>
         </div>
     </div>
 
@@ -199,6 +219,8 @@
     <div id="resourceChartData"
          data-cpu="{{ json_encode($cpuHistory) }}"
          data-ram="{{ json_encode($ramHistory) }}"
+         data-net-rx="{{ json_encode($netRxHistory) }}"
+         data-net-tx="{{ json_encode($netTxHistory) }}"
          data-labels="{{ json_encode($labels) }}">
     </div>
 </div>
@@ -264,8 +286,44 @@
         return {
             cpu: JSON.parse(el.dataset.cpu),
             ram: JSON.parse(el.dataset.ram),
+            netRx: JSON.parse(el.dataset.netRx),
+            netTx: JSON.parse(el.dataset.netTx),
             labels: JSON.parse(el.dataset.labels),
         };
+    };
+
+    const networkChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: '#111827',
+                borderColor: '#374151',
+                borderWidth: 1,
+                titleColor: '#9ca3af',
+                bodyColor: '#e5e7eb',
+                padding: 10,
+                titleFont: { family: 'monospace', size: 11 },
+                bodyFont: { family: 'monospace', size: 11 },
+                callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y + ' KB/s' },
+            },
+        },
+        scales: {
+            x: {
+                display: true,
+                ticks: { color: '#4b5563', font: { size: 10, family: 'monospace' }, maxTicksLimit: 8, maxRotation: 0 },
+                grid: { color: 'rgba(75, 85, 99, 0.2)' },
+            },
+            y: {
+                display: true,
+                min: 0,
+                ticks: { color: '#4b5563', font: { size: 10 }, callback: v => v + ' KB/s', maxTicksLimit: 5 },
+                grid: { color: 'rgba(75, 85, 99, 0.2)' },
+            },
+        },
+        elements: { point: { radius: 0, hoverRadius: 4 }, line: { tension: 0.4, borderWidth: 1.5 } },
     };
 
     const initial = readData();
@@ -284,6 +342,19 @@
         plugins: [crosshairPlugin],
     });
 
+    const networkChart = new Chart(document.getElementById('networkChart'), {
+        type: 'line',
+        data: {
+            labels: initial.labels,
+            datasets: [
+                { label: '↓ In', data: initial.netRx, borderColor: 'rgb(74, 222, 128)', backgroundColor: 'rgba(74, 222, 128, 0.1)', fill: true, pointRadius: 0, pointHoverRadius: 4 },
+                { label: '↑ Out', data: initial.netTx, borderColor: 'rgb(251, 146, 60)', backgroundColor: 'rgba(251, 146, 60, 0.1)', fill: true, pointRadius: 0, pointHoverRadius: 4 },
+            ],
+        },
+        options: networkChartOptions,
+        plugins: [crosshairPlugin],
+    });
+
     new MutationObserver(() => {
         const d = readData();
         cpuChart.data.labels = d.labels;
@@ -292,6 +363,10 @@
         ramChart.data.labels = d.labels;
         ramChart.data.datasets[0].data = d.ram;
         ramChart.update('none');
+        networkChart.data.labels = d.labels;
+        networkChart.data.datasets[0].data = d.netRx;
+        networkChart.data.datasets[1].data = d.netTx;
+        networkChart.update('none');
     }).observe(document.getElementById('resourceChartData'), { attributes: true });
 </script>
 @endscript
