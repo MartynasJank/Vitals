@@ -1,4 +1,4 @@
-<div @if($polling) wire:poll.10s="loadLines" @endif>
+<div class="overflow-x-hidden" @if($polling) wire:poll.10s="loadLines" @endif>
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 class="text-xl font-bold text-gray-100">Logs</h1>
 
