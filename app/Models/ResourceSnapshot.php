@@ -14,6 +14,8 @@ class ResourceSnapshot extends Model
         'ram_total_mb',
         'disk_used_gb',
         'disk_total_gb',
+        'rx_rate_kbps',
+        'tx_rate_kbps',
         'recorded_at',
     ];
 
