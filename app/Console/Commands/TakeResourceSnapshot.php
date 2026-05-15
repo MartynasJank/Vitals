@@ -16,6 +16,7 @@ class TakeResourceSnapshot extends Command
     {
         $ram = $server->getRamStats();
         $disk = $server->getDiskStats();
+        $network = $server->getNetworkStats();
 
         ResourceSnapshot::create([
             'cpu_percent' => $server->getCpuPercent(),
@@ -23,6 +24,8 @@ class TakeResourceSnapshot extends Command
             'ram_total_mb' => $ram['total_mb'],
             'disk_used_gb' => $disk['used_gb'],
             'disk_total_gb' => $disk['total_gb'],
+            'rx_rate_kbps' => $network['rx_rate_kbps'],
+            'tx_rate_kbps' => $network['tx_rate_kbps'],
             'recorded_at' => now(),
         ]);
 
