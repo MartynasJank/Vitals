@@ -10,6 +10,7 @@ class SystemServiceManager
         'mysql' => 'MySQL',
         'php8.4-fpm' => 'PHP 8.4-FPM',
         'fail2ban' => 'Fail2ban',
+        'cowrie' => 'Cowrie Honeypot',
     ];
 
     /**
