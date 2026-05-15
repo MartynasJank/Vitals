@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\SiteCheck;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -109,6 +111,63 @@ class SiteService
         }
 
         return null;
+    }
+
+    /**
+     * @param  string[]  $urls
+     * @return array<string, array{uptime_24h: float, avg_ms: int|null, max_ms: int|null, last_down_at: string|null, check_count: int, recent_statuses: string[]}>
+     */
+    public function getSiteStats(array $urls): array
+    {
+        if (empty($urls)) {
+            return [];
+        }
+
+        $since = now()->subHours(24);
+
+        $agg = SiteCheck::selectRaw('url, COUNT(*) as cnt, SUM(status = "up") as up_cnt, ROUND(AVG(response_ms)) as avg_ms, MAX(response_ms) as max_ms')
+            ->whereIn('url', $urls)
+            ->where('checked_at', '>=', $since)
+            ->groupBy('url')
+            ->get()
+            ->keyBy('url');
+
+        $totals = SiteCheck::selectRaw('url, COUNT(*) as cnt')
+            ->whereIn('url', $urls)
+            ->groupBy('url')
+            ->get()
+            ->keyBy('url');
+
+        $lastDown = SiteCheck::selectRaw('url, MAX(checked_at) as ts')
+            ->whereIn('url', $urls)
+            ->where('status', 'down')
+            ->groupBy('url')
+            ->get()
+            ->keyBy('url');
+
+        $recent = SiteCheck::whereIn('url', $urls)
+            ->orderByDesc('checked_at')
+            ->get(['url', 'status'])
+            ->groupBy('url')
+            ->map(fn ($g) => $g->take(20)->reverse()->values()->pluck('status')->all());
+
+        $stats = [];
+        foreach ($urls as $url) {
+            $a = $agg->get($url);
+            $t = $totals->get($url);
+            $d = $lastDown->get($url);
+
+            $stats[$url] = [
+                'uptime_24h' => $a && $a->cnt > 0 ? round(($a->up_cnt / $a->cnt) * 100, 1) : 100.0,
+                'avg_ms' => $a ? (int) $a->avg_ms : null,
+                'max_ms' => $a ? (int) $a->max_ms : null,
+                'last_down_at' => $d?->ts ? Carbon::parse($d->ts)->diffForHumans() : null,
+                'check_count' => $t ? (int) $t->cnt : 0,
+                'recent_statuses' => $recent->get($url, []),
+            ];
+        }
+
+        return $stats;
     }
 
     /**
