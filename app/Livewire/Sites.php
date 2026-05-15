@@ -49,6 +49,8 @@ class Sites extends Component
             })
             ->all();
 
+        $this->refreshStats();
+
         if ($this->selectedSite) {
             $this->loadSiteDetail($this->selectedSite);
         }
@@ -72,9 +74,21 @@ class Sites extends Component
             ->map(fn ($site) => $site['url'] === $url ? array_merge($site, $result) : $site)
             ->all();
 
+        $this->refreshStats();
+
         if ($this->selectedSite === $url) {
             $this->loadSiteDetail($url);
         }
+    }
+
+    private function refreshStats(): void
+    {
+        $urls = collect($this->sites)->pluck('url')->all();
+        $stats = app(SiteService::class)->getSiteStats($urls);
+
+        $this->sites = collect($this->sites)
+            ->map(fn ($site) => array_merge($site, $stats[$site['url']] ?? []))
+            ->all();
     }
 
     public function selectSite(string $url): void
