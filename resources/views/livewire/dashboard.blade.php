@@ -77,6 +77,9 @@
                     style="width: {{ min($diskPercent, 100) }}%">
                 </div>
             </div>
+            <div class="mt-3 h-12" wire:ignore>
+                <canvas id="diskChart"></canvas>
+            </div>
         </div>
 
         {{-- Network I/O --}}
@@ -230,6 +233,7 @@
     <div id="dashChartData"
          data-cpu="{{ json_encode($cpuHistory) }}"
          data-ram="{{ json_encode($ramHistory) }}"
+         data-disk="{{ json_encode($diskHistory) }}"
          data-net-rx="{{ json_encode($netRxHistory) }}"
          data-net-tx="{{ json_encode($netTxHistory) }}"
          data-labels="{{ json_encode($labels) }}"
@@ -271,6 +275,7 @@
         return {
             cpu: JSON.parse(el.dataset.cpu),
             ram: JSON.parse(el.dataset.ram),
+            disk: JSON.parse(el.dataset.disk),
             netRx: JSON.parse(el.dataset.netRx),
             netTx: JSON.parse(el.dataset.netTx),
             labels: JSON.parse(el.dataset.labels),
@@ -297,6 +302,15 @@
         options: sparklineOptions,
     });
 
+    const diskChart = new Chart(document.getElementById('diskChart'), {
+        type: 'line',
+        data: {
+            labels: initial.labels,
+            datasets: [{ data: initial.disk, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true }],
+        },
+        options: sparklineOptions,
+    });
+
     const networkChart = new Chart(document.getElementById('networkChart'), {
         type: 'line',
         data: {
@@ -317,6 +331,9 @@
         ramChart.data.labels = d.labels;
         ramChart.data.datasets[0].data = d.ram;
         ramChart.update('none');
+        diskChart.data.labels = d.labels;
+        diskChart.data.datasets[0].data = d.disk;
+        diskChart.update('none');
         networkChart.data.labels = d.labels;
         networkChart.data.datasets[0].data = d.netRx;
         networkChart.data.datasets[1].data = d.netTx;
