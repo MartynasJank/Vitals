@@ -148,6 +148,10 @@ class Dashboard extends Component
                 ? round($s->ram_used_mb / $s->ram_total_mb * 100, 1)
                 : 0
             ),
+            'diskHistory' => $snapshots->map(fn ($s) => $s->disk_total_gb > 0
+                ? round($s->disk_used_gb / $s->disk_total_gb * 100, 1)
+                : 0
+            ),
             'netRxHistory' => $snapshots->pluck('rx_rate_kbps'),
             'netTxHistory' => $snapshots->pluck('tx_rate_kbps'),
             'labels' => $snapshots->map(fn ($s) => $s->recorded_at->format('H:i')),
