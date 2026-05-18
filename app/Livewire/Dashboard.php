@@ -35,6 +35,9 @@ class Dashboard extends Component
 
     public string $uptime = '';
 
+    /** @var array{rx_rate_kbps: float, tx_rate_kbps: float} */
+    public array $networkStats = ['rx_rate_kbps' => 0.0, 'tx_rate_kbps' => 0.0];
+
     /** @var array<int, array{site_name: string, url: string, status: string, response_ms: int|null}> */
     public array $siteStatuses = [];
 
@@ -73,6 +76,12 @@ class Dashboard extends Component
         $this->loadAverage = $server->getLoadAverage();
         $this->coreCount = $server->getCoreCount();
         $this->uptime = $server->getServerUptime();
+
+        $network = $server->getNetworkStats();
+        $this->networkStats = [
+            'rx_rate_kbps' => $network['rx_rate_kbps'],
+            'tx_rate_kbps' => $network['tx_rate_kbps'],
+        ];
 
         $this->siteStatuses = SiteCheck::whereIn('id', function ($q) {
             $q->selectRaw('MAX(id)')->from('site_checks')->groupBy('url');
@@ -139,6 +148,9 @@ class Dashboard extends Component
                 ? round($s->ram_used_mb / $s->ram_total_mb * 100, 1)
                 : 0
             ),
+            'netRxHistory' => $snapshots->pluck('rx_rate_kbps'),
+            'netTxHistory' => $snapshots->pluck('tx_rate_kbps'),
+            'labels' => $snapshots->map(fn ($s) => $s->recorded_at->format('H:i')),
         ]);
     }
 
