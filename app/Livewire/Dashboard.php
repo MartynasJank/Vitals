@@ -2,6 +2,9 @@
 
 namespace App\Livewire;
 
+use App\Models\CowrieCommand;
+use App\Models\CowrieDownload;
+use App\Models\CowrieSession;
 use App\Models\ResourceSnapshot;
 use App\Models\SiteCheck;
 use App\Services\ServerService;
@@ -59,6 +62,9 @@ class Dashboard extends Component
     /** @var array<int, array{ip: string, country: string|null, country_code: string|null, isp: string|null, ssh: int, nginx: int, total: int}> */
     public array $topIps = [];
 
+    /** @var array{sessions_24h: int, commands_24h: int, downloads_24h: int} */
+    public array $honeypotSummary = ['sessions_24h' => 0, 'commands_24h' => 0, 'downloads_24h' => 0];
+
     #[Poll('5s')]
     public function refresh(): void
     {
@@ -114,6 +120,17 @@ class Dashboard extends Component
         } catch (\Exception) {
             $this->attacksLast24h = 0;
             $this->attacksLastHour = 0;
+        }
+
+        try {
+            $since = now()->subHours(24);
+            $this->honeypotSummary = [
+                'sessions_24h' => CowrieSession::where('started_at', '>=', $since)->count(),
+                'commands_24h' => CowrieCommand::where('timestamp', '>=', $since)->count(),
+                'downloads_24h' => CowrieDownload::where('timestamp', '>=', $since)->count(),
+            ];
+        } catch (\Exception) {
+            // keep defaults
         }
 
         $this->dispatch('dashboard-refreshed');

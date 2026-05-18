@@ -135,8 +135,8 @@
         </a>
     </div>
 
-    {{-- Sites + Services --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {{-- Sites + Services + Honeypot --}}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
         {{-- Sites --}}
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
@@ -184,6 +184,34 @@
                         </span>
                     </div>
                 @endforeach
+            </div>
+        </div>
+
+        {{-- Honeypot --}}
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+            <div class="flex items-center justify-between mb-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Honeypot (24h)</p>
+                <a href="{{ route('honeypot') }}" class="text-xs text-gray-600 hover:text-gray-400 transition-colors font-mono">view all →</a>
+            </div>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-gray-400">Sessions</p>
+                    <p class="text-sm font-mono {{ $honeypotSummary['sessions_24h'] > 50 ? 'text-red-400' : ($honeypotSummary['sessions_24h'] > 10 ? 'text-amber-400' : 'text-gray-100') }}">
+                        {{ number_format($honeypotSummary['sessions_24h']) }}
+                    </p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-gray-400">Commands</p>
+                    <p class="text-sm font-mono {{ $honeypotSummary['commands_24h'] > 0 ? 'text-amber-400' : 'text-gray-100' }}">
+                        {{ number_format($honeypotSummary['commands_24h']) }}
+                    </p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-gray-400">Downloads</p>
+                    <p class="text-sm font-mono {{ $honeypotSummary['downloads_24h'] > 0 ? 'text-red-400' : 'text-gray-100' }}">
+                        {{ number_format($honeypotSummary['downloads_24h']) }}
+                    </p>
+                </div>
             </div>
         </div>
 
