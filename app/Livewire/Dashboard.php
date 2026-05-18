@@ -166,6 +166,24 @@ class Dashboard extends Component
             ->reverse()
             ->values();
 
+        $attackVolume = [];
+        try {
+            $raw = app(ThreatIntelService::class)->getAttackVolumeOverTime('24h');
+            $byLabel = collect($raw)->keyBy('label');
+
+            for ($i = 23; $i >= 0; $i--) {
+                $dt = now()->subHours($i);
+                $key = $dt->format('Y-m-d H:00');
+                $attackVolume[] = [
+                    'label' => $dt->format('H').':00',
+                    'ssh' => $byLabel[$key]['ssh'] ?? 0,
+                    'nginx' => $byLabel[$key]['nginx'] ?? 0,
+                ];
+            }
+        } catch (\Exception) {
+            // keep empty
+        }
+
         return view('livewire.dashboard', [
             'cpuHistory' => $snapshots->pluck('cpu_percent'),
             'ramHistory' => $snapshots->map(fn ($s) => $s->ram_total_mb > 0
@@ -179,6 +197,7 @@ class Dashboard extends Component
             'netRxHistory' => $snapshots->pluck('rx_rate_kbps'),
             'netTxHistory' => $snapshots->pluck('tx_rate_kbps'),
             'labels' => $snapshots->map(fn ($s) => $s->recorded_at->format('H:i')),
+            'attackVolume' => $attackVolume,
         ]);
     }
 

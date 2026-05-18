@@ -217,6 +217,19 @@
 
     </div>
 
+    {{-- Attack volume chart --}}
+    <div class="bg-gray-900 border border-gray-800 rounded-lg mt-4">
+        <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Attack Volume — last 24h</p>
+            <a href="{{ route('threat-intel') }}" class="text-xs text-gray-600 hover:text-gray-400 transition-colors font-mono">view all →</a>
+        </div>
+        <div class="px-5 pb-5 pt-4">
+            <div class="h-32" wire:ignore>
+                <canvas id="attackChart"></canvas>
+            </div>
+        </div>
+    </div>
+
     {{-- Top IPs widget --}}
     <div class="bg-gray-900 border border-gray-800 rounded-lg mt-4">
         <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
@@ -276,6 +289,7 @@
          data-net-rx="{{ json_encode($netRxHistory) }}"
          data-net-tx="{{ json_encode($netTxHistory) }}"
          data-labels="{{ json_encode($labels) }}"
+         data-attack-volume="{{ json_encode($attackVolume) }}"
          class="hidden">
     </div>
 </div>
@@ -318,6 +332,7 @@
             netRx: JSON.parse(el.dataset.netRx),
             netTx: JSON.parse(el.dataset.netTx),
             labels: JSON.parse(el.dataset.labels),
+            attackVolume: JSON.parse(el.dataset.attackVolume),
         };
     };
 
@@ -362,6 +377,49 @@
         options: sparklineOptions,
     });
 
+    const attackChart = new Chart(document.getElementById('attackChart'), {
+        type: 'bar',
+        data: {
+            labels: initial.attackVolume.map(d => d.label),
+            datasets: [
+                { label: 'SSH', data: initial.attackVolume.map(d => d.ssh), backgroundColor: 'rgba(239,68,68,0.7)', borderWidth: 0 },
+                { label: 'Nginx', data: initial.attackVolume.map(d => d.nginx), backgroundColor: 'rgba(245,158,11,0.7)', borderWidth: 0 },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#111827',
+                    borderColor: '#374151',
+                    borderWidth: 1,
+                    titleColor: '#9ca3af',
+                    bodyColor: '#e5e7eb',
+                    padding: 8,
+                    titleFont: { family: 'monospace', size: 11 },
+                    bodyFont: { family: 'monospace', size: 11 },
+                },
+            },
+            scales: {
+                x: {
+                    display: true,
+                    stacked: true,
+                    ticks: { color: '#4b5563', font: { size: 10, family: 'monospace' }, maxRotation: 0, maxTicksLimit: 12 },
+                    grid: { display: false },
+                },
+                y: {
+                    display: true,
+                    stacked: true,
+                    ticks: { color: '#4b5563', font: { size: 10 }, maxTicksLimit: 4 },
+                    grid: { color: 'rgba(75,85,99,0.2)' },
+                },
+            },
+        },
+    });
+
     new MutationObserver(() => {
         const d = readData();
         cpuChart.data.labels = d.labels;
@@ -377,6 +435,11 @@
         networkChart.data.datasets[0].data = d.netRx;
         networkChart.data.datasets[1].data = d.netTx;
         networkChart.update('none');
+        const av = d.attackVolume;
+        attackChart.data.labels = av.map(x => x.label);
+        attackChart.data.datasets[0].data = av.map(x => x.ssh);
+        attackChart.data.datasets[1].data = av.map(x => x.nginx);
+        attackChart.update('none');
     }).observe(document.getElementById('dashChartData'), { attributes: true });
 </script>
 @endscript
