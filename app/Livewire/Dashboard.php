@@ -38,6 +38,9 @@ class Dashboard extends Component
     /** @var array{rx_rate_kbps: float, tx_rate_kbps: float} */
     public array $networkStats = ['rx_rate_kbps' => 0.0, 'tx_rate_kbps' => 0.0];
 
+    /** @var array{total: int, established: int, time_wait: int} */
+    public array $tcpStats = ['total' => 0, 'established' => 0, 'time_wait' => 0];
+
     /** @var array<int, array{site_name: string, url: string, status: string, response_ms: int|null}> */
     public array $siteStatuses = [];
 
@@ -83,6 +86,8 @@ class Dashboard extends Component
             'tx_rate_kbps' => $network['tx_rate_kbps'],
         ];
 
+        $this->tcpStats = $server->getTcpStats();
+
         $this->siteStatuses = SiteCheck::whereIn('id', function ($q) {
             $q->selectRaw('MAX(id)')->from('site_checks')->groupBy('url');
         })
@@ -110,6 +115,8 @@ class Dashboard extends Component
             $this->attacksLast24h = 0;
             $this->attacksLastHour = 0;
         }
+
+        $this->dispatch('dashboard-refreshed');
     }
 
     public function mount(): void
