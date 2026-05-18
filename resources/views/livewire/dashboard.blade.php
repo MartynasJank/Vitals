@@ -22,10 +22,17 @@
     </div>
 
     {{-- Stat cards --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+    @php
+        $fmtKbps = fn ($kbps) => $kbps >= 1024
+            ? number_format($kbps / 1024, 1).' MB/s'
+            : number_format($kbps, 0).' KB/s';
+    @endphp
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+
         {{-- CPU --}}
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">CPU Usage</p>
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">CPU</p>
             <p class="text-4xl font-bold text-gray-100">{{ number_format($cpuPercent, 1) }}<span class="text-xl text-gray-500 ml-1">%</span></p>
             <div class="mt-4 h-1.5 bg-gray-800 rounded-full overflow-hidden">
                 <div class="h-full rounded-full transition-all duration-500
@@ -33,33 +40,33 @@
                     style="width: {{ min($cpuPercent, 100) }}%">
                 </div>
             </div>
-            <div class="mt-4 h-12">
+            <div class="mt-3 h-12" wire:ignore>
                 <canvas id="cpuChart"></canvas>
             </div>
         </div>
 
         {{-- RAM --}}
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">RAM Usage</p>
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">RAM</p>
             <p class="text-4xl font-bold text-gray-100">
                 {{ number_format($ramUsedMb / 1024, 1) }}<span class="text-xl text-gray-500 ml-1">GB</span>
             </p>
             <p class="text-sm text-gray-500 mt-1">of {{ number_format($ramTotalMb / 1024, 1) }} GB</p>
+            @php $ramPercent = $ramTotalMb > 0 ? ($ramUsedMb / $ramTotalMb) * 100 : 0; @endphp
             <div class="mt-3 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                @php $ramPercent = $ramTotalMb > 0 ? ($ramUsedMb / $ramTotalMb) * 100 : 0; @endphp
                 <div class="h-full rounded-full transition-all duration-500
                     {{ $ramPercent > 80 ? 'bg-red-500' : ($ramPercent > 50 ? 'bg-amber-500' : 'bg-green-500') }}"
                     style="width: {{ min($ramPercent, 100) }}%">
                 </div>
             </div>
-            <div class="mt-3 h-12">
+            <div class="mt-3 h-12" wire:ignore>
                 <canvas id="ramChart"></canvas>
             </div>
         </div>
 
         {{-- Disk --}}
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Disk Usage</p>
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Disk</p>
             <p class="text-4xl font-bold text-gray-100">
                 {{ number_format($diskUsedGb, 0) }}<span class="text-xl text-gray-500 ml-1">GB</span>
             </p>
@@ -71,6 +78,17 @@
                 </div>
             </div>
         </div>
+
+        {{-- Network I/O --}}
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Network I/O</p>
+            <p class="text-2xl font-bold text-gray-100">↓ {{ $fmtKbps($networkStats['rx_rate_kbps']) }}</p>
+            <p class="text-sm text-gray-500 mt-1">↑ {{ $fmtKbps($networkStats['tx_rate_kbps']) }}</p>
+            <div class="mt-4 h-12" wire:ignore>
+                <canvas id="networkChart"></canvas>
+            </div>
+        </div>
+
     </div>
 
     {{-- Quick info pills --}}
@@ -207,64 +225,102 @@
             </div>
         @endif
     </div>
+
+    {{-- Chart data updated by Livewire on each render --}}
+    <div id="dashChartData"
+         data-cpu="{{ json_encode($cpuHistory) }}"
+         data-ram="{{ json_encode($ramHistory) }}"
+         data-net-rx="{{ json_encode($netRxHistory) }}"
+         data-net-tx="{{ json_encode($netTxHistory) }}"
+         data-labels="{{ json_encode($labels) }}"
+         class="hidden">
+    </div>
 </div>
 
 @script
 <script>
-    const chartDefaults = {
-        type: 'line',
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#111827',
-                    borderColor: '#374151',
-                    borderWidth: 1,
-                    titleColor: '#9ca3af',
-                    bodyColor: '#e5e7eb',
-                    padding: 8,
-                    titleFont: { family: 'monospace', size: 11 },
-                    bodyFont: { family: 'monospace', size: 11 },
-                },
+    const sparklineOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: '#111827',
+                borderColor: '#374151',
+                borderWidth: 1,
+                titleColor: '#9ca3af',
+                bodyColor: '#e5e7eb',
+                padding: 8,
+                titleFont: { family: 'monospace', size: 11 },
+                bodyFont: { family: 'monospace', size: 11 },
             },
-            scales: {
-                x: { display: false },
-                y: { display: false, min: 0, max: 100 },
-            },
-            elements: {
-                point: { radius: 0, hoverRadius: 3 },
-                line: { tension: 0.4, borderWidth: 1.5 },
-            },
+        },
+        scales: {
+            x: { display: false },
+            y: { display: false, min: 0 },
+        },
+        elements: {
+            point: { radius: 0, hoverRadius: 3 },
+            line: { tension: 0.4, borderWidth: 1.5 },
         },
     };
 
+    const readData = () => {
+        const el = document.getElementById('dashChartData');
+        return {
+            cpu: JSON.parse(el.dataset.cpu),
+            ram: JSON.parse(el.dataset.ram),
+            netRx: JSON.parse(el.dataset.netRx),
+            netTx: JSON.parse(el.dataset.netTx),
+            labels: JSON.parse(el.dataset.labels),
+        };
+    };
+
+    const initial = readData();
+
     const cpuChart = new Chart(document.getElementById('cpuChart'), {
-        ...chartDefaults,
+        type: 'line',
         data: {
-            labels: @json($cpuHistory->keys()),
-            datasets: [{
-                data: @json($cpuHistory),
-                borderColor: '#4ade80',
-                backgroundColor: 'rgba(74, 222, 128, 0.1)',
-                fill: true,
-            }],
+            labels: initial.labels,
+            datasets: [{ data: initial.cpu, borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.1)', fill: true }],
         },
+        options: sparklineOptions,
     });
 
     const ramChart = new Chart(document.getElementById('ramChart'), {
-        ...chartDefaults,
+        type: 'line',
         data: {
-            labels: @json($ramHistory->keys()),
-            datasets: [{
-                data: @json($ramHistory),
-                borderColor: '#60a5fa',
-                backgroundColor: 'rgba(96, 165, 250, 0.1)',
-                fill: true,
-            }],
+            labels: initial.labels,
+            datasets: [{ data: initial.ram, borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.1)', fill: true }],
         },
+        options: sparklineOptions,
     });
+
+    const networkChart = new Chart(document.getElementById('networkChart'), {
+        type: 'line',
+        data: {
+            labels: initial.labels,
+            datasets: [
+                { data: initial.netRx, borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.05)', fill: true },
+                { data: initial.netTx, borderColor: '#fb923c', backgroundColor: 'rgba(251,146,60,0.05)', fill: true },
+            ],
+        },
+        options: sparklineOptions,
+    });
+
+    new MutationObserver(() => {
+        const d = readData();
+        cpuChart.data.labels = d.labels;
+        cpuChart.data.datasets[0].data = d.cpu;
+        cpuChart.update('none');
+        ramChart.data.labels = d.labels;
+        ramChart.data.datasets[0].data = d.ram;
+        ramChart.update('none');
+        networkChart.data.labels = d.labels;
+        networkChart.data.datasets[0].data = d.netRx;
+        networkChart.data.datasets[1].data = d.netTx;
+        networkChart.update('none');
+    }).observe(document.getElementById('dashChartData'), { attributes: true });
 </script>
 @endscript
