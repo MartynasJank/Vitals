@@ -1,5 +1,12 @@
 <div>
-    <h1 class="text-xl font-bold text-gray-100 mb-6">Dashboard</h1>
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-xl font-bold text-gray-100">Dashboard</h1>
+        <div x-data="{ elapsed: 0 }"
+             x-init="setInterval(() => elapsed++, 1000)"
+             @dashboard-refreshed.window="elapsed = 0">
+            <span class="text-xs text-gray-600 font-mono" x-text="'updated ' + elapsed + 's ago'"></span>
+        </div>
+    </div>
 
     {{-- Alerts --}}
     <div class="mb-6">
@@ -109,6 +116,10 @@
             <p class="text-sm font-mono {{ $swap['used_mb'] > 0 ? 'text-amber-400' : 'text-gray-100' }}">
                 {{ number_format($swap['used_mb'] / 1024, 1) }} / {{ number_format($swap['total_mb'] / 1024, 1) }} GB
             </p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 flex items-center gap-2.5">
+            <p class="text-xs text-gray-500">TCP</p>
+            <p class="text-sm font-mono text-gray-100">{{ number_format($tcpStats['established']) }} est.</p>
         </div>
         <a href="{{ route('threat-intel') }}" class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 flex items-center gap-2.5 hover:border-gray-700 transition-colors">
             <p class="text-xs text-gray-500">Attacks 1h</p>
