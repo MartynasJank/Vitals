@@ -266,10 +266,10 @@
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
                             @if($entry['ssh'] > 0)
-                                <span class="text-xs font-mono text-red-400/70">SSH {{ number_format($entry['ssh']) }}</span>
+                                <span class="text-xs font-mono text-red-400/70 hidden sm:inline">SSH {{ number_format($entry['ssh']) }}</span>
                             @endif
                             @if($entry['nginx'] > 0)
-                                <span class="text-xs font-mono text-amber-400/70">Nginx {{ number_format($entry['nginx']) }}</span>
+                                <span class="text-xs font-mono text-amber-400/70 hidden sm:inline">Nginx {{ number_format($entry['nginx']) }}</span>
                             @endif
                             <span class="text-sm font-mono font-bold {{ $entry['total'] > 10000 ? 'text-red-400' : ($entry['total'] > 1000 ? 'text-amber-400' : 'text-gray-300') }}">
                                 {{ number_format($entry['total']) }}
