@@ -331,7 +331,7 @@
                                 <p class="text-xs font-mono text-red-400 break-all">{{ $dl['url'] }}</p>
                                 <div class="flex items-center gap-3 mt-1">
                                     @if($dl['filename'])
-                                        <span class="text-xs text-gray-500 font-mono">{{ $dl['filename'] }}</span>
+                                        <span class="text-xs text-gray-500 font-mono truncate max-w-[200px] block">{{ $dl['filename'] }}</span>
                                     @endif
                                     @if($dl['file_hash'])
                                         <a href="{{ route('honeypot.malware.detail', $dl['file_hash']) }}"
