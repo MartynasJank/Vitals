@@ -186,11 +186,23 @@ class ParseCowrieLogs extends Command
             return;
         }
 
+        $shasum = $event['shasum'] ?? null;
+
+        if ($shasum) {
+            $already = CowrieDownload::where('cowrie_session_id', $session->id)
+                ->where('file_hash', $shasum)
+                ->exists();
+
+            if ($already) {
+                return;
+            }
+        }
+
         CowrieDownload::create([
             'cowrie_session_id' => $session->id,
             'url' => $event['url'] ?? null,
             'filename' => isset($event['outfile']) ? basename($event['outfile']) : null,
-            'file_hash' => $event['shasum'] ?? null,
+            'file_hash' => $shasum,
             'timestamp' => $this->parseTimestamp($event['timestamp']),
         ]);
     }
