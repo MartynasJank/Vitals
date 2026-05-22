@@ -47,7 +47,7 @@
                         @endif
 
                         @if($service['memory'])
-                            <div class="text-right hidden sm:block">
+                            <div class="text-right">
                                 <p class="text-xs text-gray-500 mb-0.5">Memory</p>
                                 <p class="text-sm text-gray-300">{{ $service['memory'] }}</p>
                             </div>
