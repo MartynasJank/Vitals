@@ -34,6 +34,10 @@
                             <div class="min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <p class="text-sm font-medium text-gray-100">{{ $site['name'] }}</p>
+                                    <a href="{{ $site['url'] }}" target="_blank" rel="noopener noreferrer"
+                                       wire:click.stop class="text-gray-600 hover:text-gray-400 transition-colors" title="Open site">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                    </a>
                                     @if(isset($site['uptime_24h']) && $site['uptime_24h'] < 100)
                                         <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400">{{ $site['uptime_24h'] }}%</span>
                                     @elseif(isset($site['uptime_24h']))
