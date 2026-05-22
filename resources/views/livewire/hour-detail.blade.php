@@ -116,7 +116,7 @@
                                         </div>
                                     </td>
                                     <td class="px-5 py-2 text-gray-400">{{ $hit['method'] ?? '—' }}</td>
-                                    <td class="px-5 py-2 text-gray-300 max-w-xs truncate">{{ $hit['path'] ?? '—' }}</td>
+                                    <td class="px-5 py-2 text-gray-300 max-w-[160px] truncate">{{ $hit['path'] ?? '—' }}</td>
                                     <td class="px-5 py-2 hidden md:table-cell">
                                         @if($hit['scan_type'])
                                             <span class="px-1.5 py-0.5 rounded text-xs
