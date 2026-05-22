@@ -152,7 +152,8 @@
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2.5 min-w-0">
                                 <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $site['status'] === 'up' ? 'bg-green-400' : 'bg-red-500' }}"></span>
-                                <p class="text-sm font-mono text-gray-300 truncate">{{ $site['site_name'] }}</p>
+                                <a href="{{ $site['url'] }}" target="_blank" rel="noopener noreferrer"
+                                   class="text-sm font-mono text-gray-300 truncate hover:text-gray-100 transition-colors">{{ $site['site_name'] }}</a>
                             </div>
                             <div class="flex items-center gap-3 flex-shrink-0 ml-3">
                                 <p class="text-xs text-gray-500 font-mono">{{ $site['response_ms'] ? $site['response_ms'].'ms' : '—' }}</p>
