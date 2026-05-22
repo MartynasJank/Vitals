@@ -183,7 +183,7 @@
                             @if(!empty($session['commands']))
                                 <div class="mt-1.5 pl-2 border-l border-gray-800 space-y-0.5">
                                     @foreach($session['commands'] as $cmd)
-                                        <p class="text-xs font-mono text-gray-400">{{ $cmd }}</p>
+                                        <p class="text-xs font-mono text-gray-400 break-all">{{ $cmd }}</p>
                                     @endforeach
                                 </div>
                             @endif
