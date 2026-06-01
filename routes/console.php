@@ -11,7 +11,7 @@ Schedule::command('vitals:snapshot')->everyFiveMinutes();
 Schedule::command('vitals:check-sites')->everyFiveMinutes();
 Schedule::command('vitals:parse-nginx-logs')->everyFiveMinutes();
 Schedule::command('vitals:parse-ssh-logs')->everyFiveMinutes();
-Schedule::command('vitals:parse-cowrie-logs')->everyMinute();
+Schedule::command('vitals:parse-cowrie-logs')->hourly();
 Schedule::command('malware:scan-downloads')->everyFiveMinutes();
 Schedule::command('malware:fetch-vt')->everyThirtyMinutes();
 
