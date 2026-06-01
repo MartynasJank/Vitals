@@ -168,12 +168,22 @@ class ParseCowrieLogs extends Command
             return;
         }
 
+        $timestamp = $this->parseTimestamp($event['timestamp']);
+
+        if (CowrieLogin::where('cowrie_session_id', $session->id)
+            ->where('username', $event['username'])
+            ->where('password', $event['password'])
+            ->where('timestamp', $timestamp)
+            ->exists()) {
+            return;
+        }
+
         CowrieLogin::create([
             'cowrie_session_id' => $session->id,
             'username' => $event['username'],
             'password' => $event['password'],
             'is_success' => $success,
-            'timestamp' => $this->parseTimestamp($event['timestamp']),
+            'timestamp' => $timestamp,
         ]);
 
         if ($success) {
@@ -193,10 +203,19 @@ class ParseCowrieLogs extends Command
             return;
         }
 
+        $timestamp = $this->parseTimestamp($event['timestamp']);
+
+        if (CowrieCommand::where('cowrie_session_id', $session->id)
+            ->where('input', $event['input'])
+            ->where('timestamp', $timestamp)
+            ->exists()) {
+            return;
+        }
+
         CowrieCommand::create([
             'cowrie_session_id' => $session->id,
             'input' => $event['input'],
-            'timestamp' => $this->parseTimestamp($event['timestamp']),
+            'timestamp' => $timestamp,
         ]);
 
         if (! $session->is_interesting && $event['input'] !== '' && ! $this->isFingerprinting($event['input'])) {
