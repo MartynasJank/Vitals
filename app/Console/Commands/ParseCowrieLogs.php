@@ -18,6 +18,8 @@ class ParseCowrieLogs extends Command
 {
     private const LOG_FILE = '/home/cowrie/cowrie/var/log/cowrie/cowrie.json';
 
+    private const LOG_DIR = '/home/cowrie/cowrie/var/log/cowrie';
+
     private const STATE_FILE = 'cowrie_parse_state.json';
 
     public function handle(ThreatIntelService $threatIntel): void
@@ -30,13 +32,19 @@ class ParseCowrieLogs extends Command
 
         $stateFile = storage_path('app/'.self::STATE_FILE);
         $state = file_exists($stateFile) ? (json_decode(file_get_contents($stateFile), true) ?? []) : [];
-        $offset = $state['offset'] ?? 0;
 
         if (! ($state['is_interesting_backfilled'] ?? false)) {
             $this->backfillInterestingSessions();
             $state['is_interesting_backfilled'] = true;
         }
 
+        $processed = 0;
+
+        // Process any rotated log files that haven't been fully read yet.
+        $processed += $this->processRotatedFiles($state, $threatIntel);
+
+        // Continue incrementally from the current active log file.
+        $offset = $state['offset'] ?? 0;
         $fileSize = filesize(self::LOG_FILE);
 
         if ($offset > $fileSize) {
@@ -52,8 +60,6 @@ class ParseCowrieLogs extends Command
         }
 
         fseek($handle, $offset);
-
-        $processed = 0;
 
         while (($line = fgets($handle)) !== false) {
             $event = json_decode(trim($line), true);
@@ -76,6 +82,53 @@ class ParseCowrieLogs extends Command
         file_put_contents($stateFile, json_encode($state));
 
         $this->info("Processed {$processed} Cowrie events.");
+    }
+
+    private function processRotatedFiles(array &$state, ThreatIntelService $threatIntel): int
+    {
+        $done = $state['processed_rotated_files'] ?? [];
+        $rotated = glob(self::LOG_DIR.'/cowrie.json.*') ?: [];
+        $processed = 0;
+
+        foreach ($rotated as $path) {
+            $basename = basename($path);
+
+            if (in_array($basename, $done, true)) {
+                continue;
+            }
+
+            $isGzip = str_ends_with($path, '.gz');
+            $handle = $isGzip ? gzopen($path, 'rb') : fopen($path, 'r');
+
+            if (! $handle) {
+                continue;
+            }
+
+            $readLine = $isGzip ? fn () => gzgets($handle) : fn () => fgets($handle);
+
+            while (($line = $readLine()) !== false) {
+                $event = json_decode(trim($line), true);
+
+                if (! $event || ! isset($event['eventid'])) {
+                    continue;
+                }
+
+                try {
+                    $this->handleEvent($event, $threatIntel);
+                    $processed++;
+                } catch (\Exception $e) {
+                    // continue
+                }
+            }
+
+            $isGzip ? gzclose($handle) : fclose($handle);
+
+            $done[] = $basename;
+        }
+
+        $state['processed_rotated_files'] = $done;
+
+        return $processed;
     }
 
     private function handleEvent(array $event, ThreatIntelService $threatIntel): void
