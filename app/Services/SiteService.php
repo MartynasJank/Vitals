@@ -233,7 +233,7 @@ class SiteService
         $start = hrtime(true);
 
         try {
-            $response = Http::timeout(10)->get($url);
+            $response = Http::timeout(10)->withHeaders(['User-Agent' => 'Vitals-Monitor/1.0'])->get($url);
             $ms = (int) ((hrtime(true) - $start) / 1_000_000);
 
             $h = $response->headers();
@@ -249,7 +249,7 @@ class SiteService
             if (($parsed['scheme'] ?? '') === 'https' && ! empty($parsed['host'])) {
                 $httpUrl = 'http://'.$parsed['host'].($parsed['path'] ?? '/');
                 try {
-                    $redirect = Http::timeout(5)->withoutRedirecting()->get($httpUrl);
+                    $redirect = Http::timeout(5)->withHeaders(['User-Agent' => 'Vitals-Monitor/1.0'])->withoutRedirecting()->get($httpUrl);
                     $location = $redirect->header('Location') ?? '';
                     $redirectsToHttps = str_starts_with($location, 'https://');
                 } catch (\Exception) {
