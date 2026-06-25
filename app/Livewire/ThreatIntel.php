@@ -11,6 +11,11 @@ class ThreatIntel extends Component
 {
     public string $timeRange = '24h';
 
+    public string $countryFilter = '';
+
+    /** @var array<int, array{country: string, country_code: string}> */
+    public array $availableCountries = [];
+
     /** @var array<int, array{label: string, ssh: int, nginx: int}> */
     public array $attackVolume = [];
 
@@ -54,6 +59,7 @@ class ThreatIntel extends Component
 
     public function mount(): void
     {
+        $this->availableCountries = app(ThreatIntelService::class)->getDistinctCountries();
         $this->loadData();
     }
 
@@ -62,21 +68,22 @@ class ThreatIntel extends Component
     {
         try {
             $service = app(ThreatIntelService::class);
+            $country = $this->countryFilter ?: null;
 
-            $this->attackVolume = $service->getAttackVolumeOverTime($this->timeRange);
+            $this->attackVolume = $service->getAttackVolumeOverTime($this->timeRange, $country);
             $this->topCountries = $service->getTopSourceCountries();
-            $this->topIsps = $service->getTopIsps();
-            $this->topOrgs = $service->getTopOrgs();
-            $this->topReferers = $service->getTopReferers();
-            $this->topUsernames = $service->getTopSshUsernames();
-            $this->topPaths = $service->getTopNginxPaths();
-            $this->repeatOffenderRate = $service->getRepeatOffenderRate();
-            $this->crossSourceIps = $service->getCrossSourceIps();
-            $this->attackHeatmap = $service->getAttackHeatmap($this->timeRange);
+            $this->topIsps = $service->getTopIsps(countryCode: $country);
+            $this->topOrgs = $service->getTopOrgs(countryCode: $country);
+            $this->topReferers = $service->getTopReferers(countryCode: $country);
+            $this->topUsernames = $service->getTopSshUsernames(countryCode: $country);
+            $this->topPaths = $service->getTopNginxPaths(countryCode: $country);
+            $this->repeatOffenderRate = $service->getRepeatOffenderRate($country);
+            $this->crossSourceIps = $service->getCrossSourceIps($country);
+            $this->attackHeatmap = $service->getAttackHeatmap($this->timeRange, $country);
             $this->attackOrigins = $service->getAttackOrigins();
-            $this->anonymiserBreakdown = $service->getAnonymiserBreakdown();
-            $this->topAsns = $service->getTopAsns();
-            $this->topVhosts = $service->getTopTargetedVhosts($this->timeRange);
+            $this->anonymiserBreakdown = $service->getAnonymiserBreakdown($country);
+            $this->topAsns = $service->getTopAsns(countryCode: $country);
+            $this->topVhosts = $service->getTopTargetedVhosts($this->timeRange, $country);
         } catch (\Exception) {
             // Degrade gracefully if the threat DB is not yet configured
         }
@@ -85,6 +92,11 @@ class ThreatIntel extends Component
     public function setRange(string $range): void
     {
         $this->timeRange = $range;
+        $this->loadData();
+    }
+
+    public function updatedCountryFilter(): void
+    {
         $this->loadData();
     }
 

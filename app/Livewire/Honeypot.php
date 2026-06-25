@@ -34,8 +34,18 @@ class Honeypot extends Component
     /** @var array<int, array{password: string, count: int}> */
     public array $topPasswords = [];
 
+    public string $countryFilter = '';
+
+    /** @var array<int, array{country: string, country_code: string}> */
+    public array $availableCountries = [];
+
+    public bool $loginsOnly = false;
+
+    public ?string $banMessage = null;
+
     public function mount(): void
     {
+        $this->availableCountries = app(ThreatIntelService::class)->getDistinctCountries();
         $this->loadData();
     }
 
@@ -44,26 +54,28 @@ class Honeypot extends Component
     {
         try {
             $service = app(ThreatIntelService::class);
-            $this->stats = $service->getCowrieStats();
-            $sessions = $service->getRecentCowrieSessions(limit: $this->loginsOnly ? 100 : 20);
+            $country = $this->countryFilter ?: null;
+            $this->stats = $service->getCowrieStats($country);
+            $sessions = $service->getRecentCowrieSessions(limit: $this->loginsOnly ? 100 : 20, countryCode: $country);
             if ($this->loginsOnly) {
                 $sessions = array_values(array_filter($sessions, fn ($s) => ! empty($s['username'])));
                 $sessions = array_slice($sessions, 0, 20);
             }
             $this->recentSessions = $sessions;
-            $this->topCredentials = $service->getTopCredentials();
-            $this->topCommands = $service->getTopCowrieCommands();
-            $this->topDownloads = $service->getTopCowrieDownloads();
-            $this->interestingSessions = $service->getInterestingSessions();
-            $this->topUsernames = $service->getTopUsernames();
-            $this->topPasswords = $service->getTopPasswords();
+            $this->topCredentials = $service->getTopCredentials(countryCode: $country);
+            $this->topCommands = $service->getTopCowrieCommands(countryCode: $country);
+            $this->topDownloads = $service->getTopCowrieDownloads(countryCode: $country);
+            $this->interestingSessions = $service->getInterestingSessions(countryCode: $country);
+            $this->topUsernames = $service->getTopUsernames(countryCode: $country);
+            $this->topPasswords = $service->getTopPasswords(countryCode: $country);
         } catch (\Exception) {
         }
     }
 
-    public bool $loginsOnly = false;
-
-    public ?string $banMessage = null;
+    public function updatedCountryFilter(): void
+    {
+        $this->loadData();
+    }
 
     public function toggleLoginsOnly(): void
     {
