@@ -1,13 +1,27 @@
 <div>
     <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
         <h1 class="text-xl font-bold text-gray-100">Threat Intelligence</h1>
-        <div class="flex gap-1">
-            @foreach(['24h' => '24h', '7d' => '7d', '30d' => '30d'] as $value => $label)
-                <button wire:click="setRange('{{ $value }}')"
-                        class="px-3 py-1 text-xs font-mono rounded transition-colors {{ $timeRange === $value ? 'bg-gray-700 text-gray-100' : 'text-gray-500 hover:text-gray-300' }}">
-                    {{ $label }}
-                </button>
-            @endforeach
+        <div class="flex items-center gap-2">
+            @if(!empty($availableCountries))
+                <div class="relative">
+                    <select wire:model.live="countryFilter"
+                            class="appearance-none bg-gray-800 border border-gray-700 text-gray-300 text-xs font-mono rounded px-3 py-1.5 pr-7 focus:outline-none focus:border-gray-600 cursor-pointer">
+                        <option value="">All Countries</option>
+                        @foreach($availableCountries as $c)
+                            <option value="{{ $c['country_code'] }}">{{ $c['country'] }}</option>
+                        @endforeach
+                    </select>
+                    <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+            @endif
+            <div class="flex gap-1">
+                @foreach(['24h' => '24h', '7d' => '7d', '30d' => '30d'] as $value => $label)
+                    <button wire:click="setRange('{{ $value }}')"
+                            class="px-3 py-1 text-xs font-mono rounded transition-colors {{ $timeRange === $value ? 'bg-gray-700 text-gray-100' : 'text-gray-500 hover:text-gray-300' }}">
+                        {{ $label }}
+                    </button>
+                @endforeach
+            </div>
         </div>
     </div>
 

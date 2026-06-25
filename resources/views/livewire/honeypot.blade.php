@@ -5,12 +5,26 @@
         </div>
     @endif
 
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 class="text-xl font-bold text-gray-100">Honeypot</h1>
-        <span class="flex items-center gap-1.5 text-xs font-mono text-green-400">
-            <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-            live
-        </span>
+        <div class="flex items-center gap-2">
+            @if(!empty($availableCountries))
+                <div class="relative">
+                    <select wire:model.live="countryFilter"
+                            class="appearance-none bg-gray-800 border border-gray-700 text-gray-300 text-xs font-mono rounded px-3 py-1.5 pr-7 focus:outline-none focus:border-gray-600 cursor-pointer">
+                        <option value="">All Countries</option>
+                        @foreach($availableCountries as $c)
+                            <option value="{{ $c['country_code'] }}">{{ $c['country'] }}</option>
+                        @endforeach
+                    </select>
+                    <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+            @endif
+            <span class="flex items-center gap-1.5 text-xs font-mono text-green-400">
+                <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                live
+            </span>
+        </div>
     </div>
 
     {{-- Stat cards --}}
